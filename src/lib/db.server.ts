@@ -1,7 +1,7 @@
 import 'server-only'
 import { MongoClient, Db } from 'mongodb'
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://sbarp:plz325@cluster0.nbdqfob.mongodb.net/dynamic_qr'
+const MONGODB_URI = process.env.MONGODB_URI || ''
 const DB_NAME = 'dynamic_qr'
 
 if (!MONGODB_URI) {

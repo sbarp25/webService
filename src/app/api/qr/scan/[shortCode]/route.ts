@@ -5,13 +5,14 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(
     request: Request,
-    { params }: { params: { shortCode: string } }
+    { params }: { params: Promise<{ shortCode: string }> }
 ) {
+    const { shortCode } = await params
     try {
         const { db } = await connectToDatabase()
         const qrCodes = db.collection('qrcodes')
 
-        const qrCode = await qrCodes.findOne({ shortCode: params.shortCode })
+        const qrCode = await qrCodes.findOne({ shortCode })
 
         if (!qrCode) {
             return NextResponse.json({ error: 'QR code not found' }, { status: 404 })
