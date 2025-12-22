@@ -73,7 +73,7 @@ export function WatermarkSidebar({
                             <Slider
                                 value={settings.fontSize}
                                 min={1}
-                                max={50}
+                                max={1000}
                                 onChange={(e) => updateSettings({ fontSize: Number(e.target.value) })}
                             />
                         </div>
@@ -138,6 +138,28 @@ export function WatermarkSidebar({
                             onChange={(e) => updateSettings({ rotation: Number(e.target.value) })}
                         />
                     </div>
+
+                    {/* Spacing Control */}
+                    {(settings.isTiled || settings.type === 'text') && (
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-muted-foreground uppercase">
+                                {settings.isTiled ? 'Tile Spacing' : 'Letter Spacing'}
+                            </label>
+                            <Slider
+                                value={settings.isTiled ? settings.tileGap : settings.letterSpacing}
+                                min={settings.isTiled ? 0 : -5}
+                                max={settings.isTiled ? 200 : 50}
+                                onChange={(e) => {
+                                    const val = Number(e.target.value)
+                                    if (settings.isTiled) {
+                                        updateSettings({ tileGap: val })
+                                    } else {
+                                        updateSettings({ letterSpacing: val })
+                                    }
+                                }}
+                            />
+                        </div>
+                    )}
 
                     <div className="flex items-center justify-between">
                         <label className="text-sm font-medium">Tile Watermark</label>

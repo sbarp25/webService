@@ -13,6 +13,7 @@ export interface WatermarkSettings {
     isTiled: boolean
     tileGap: number
     rotation: number
+    letterSpacing: number
 }
 
 export const DEFAULT_WATERMARK_SETTINGS: WatermarkSettings = {
@@ -29,7 +30,8 @@ export const DEFAULT_WATERMARK_SETTINGS: WatermarkSettings = {
     customY: 0,
     isTiled: false,
     tileGap: 50,
-    rotation: 0
+    rotation: 0,
+    letterSpacing: 0
 }
 
 export function drawWatermark(
@@ -70,6 +72,12 @@ function drawSingleWatermark(
         ctx.fillStyle = settings.color
         ctx.textBaseline = 'middle'
         ctx.textAlign = 'center'
+
+        // Use letterSpacing if available (modern browsers)
+        if ('letterSpacing' in ctx) {
+            (ctx as any).letterSpacing = `${settings.letterSpacing}px`
+        }
+
         const metrics = ctx.measureText(settings.text)
         w = metrics.width
         h = fontSizePx // Approx
@@ -140,6 +148,9 @@ function drawTiledWatermark(
 
     if (settings.type === 'text') {
         pCtx.font = `bold ${settings.fontSize}px ${settings.font}`
+        if ('letterSpacing' in pCtx) {
+            (pCtx as any).letterSpacing = `${settings.letterSpacing}px`
+        }
         const metrics = pCtx.measureText(settings.text)
         w = metrics.width + settings.tileGap
         h = settings.fontSize + settings.tileGap
@@ -150,6 +161,9 @@ function drawTiledWatermark(
         pCtx.fillStyle = settings.color
         pCtx.textBaseline = 'middle'
         pCtx.textAlign = 'center'
+        if ('letterSpacing' in pCtx) {
+            (pCtx as any).letterSpacing = `${settings.letterSpacing}px`
+        }
 
         // Rotate text slightly for better tiled look? Maybe optional.
         pCtx.translate(w / 2, h / 2)
