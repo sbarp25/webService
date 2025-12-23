@@ -22,9 +22,25 @@ export function CollageCanvas({
     const [activeSlot, setActiveSlot] = useState<string | null>(null)
     const [draggedImage, setDraggedImage] = useState<string | null>(null)
     const [transforms, setTransforms] = useState<Record<string, { x: number, y: number, scale: number }>>({})
+    const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
     const interactionRef = useRef<{ isPanning: boolean, startX: number, startY: number, slotId: string | null }>({
         isPanning: false, startX: 0, startY: 0, slotId: null
     })
+
+    // Handle clicking outside to deselect
+    useEffect(() => {
+        const handleGlobalClick = (e: MouseEvent | TouchEvent) => {
+            if (!(e.target as HTMLElement).closest('.collage-slot')) {
+                setSelectedSlot(null)
+            }
+        }
+        window.addEventListener('mousedown', handleGlobalClick)
+        window.addEventListener('touchstart', handleGlobalClick)
+        return () => {
+            window.removeEventListener('mousedown', handleGlobalClick)
+            window.removeEventListener('touchstart', handleGlobalClick)
+        }
+    }, [])
 
     // Helper to draw the collage to the canvas (hidden or visible)
     useEffect(() => {
@@ -208,6 +224,44 @@ export function CollageCanvas({
         interactionRef.current.startY = e.clientY
     }
 
+    const handleTouchStart = (e: React.TouchEvent, slotId: string) => {
+        if (!images[slotId]) return
+        e.stopPropagation()
+        const touch = e.touches[0]
+        interactionRef.current = {
+            isPanning: true,
+            startX: touch.clientX,
+            startY: touch.clientY,
+            slotId
+        }
+    }
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        if (!interactionRef.current.isPanning || !interactionRef.current.slotId) return
+
+        // Prevent scrolling while panning
+        if (e.cancelable) e.preventDefault()
+
+        const touch = e.touches[0]
+        const dx = touch.clientX - interactionRef.current.startX
+        const dy = touch.clientY - interactionRef.current.startY
+
+        const slotId = interactionRef.current.slotId
+
+        setTransforms(prev => {
+            const t = prev[slotId] || { x: 0, y: 0, scale: 1 }
+            return { ...prev, [slotId]: { ...t, x: t.x + dx, y: t.y + dy } }
+        })
+
+        interactionRef.current.startX = touch.clientX
+        interactionRef.current.startY = touch.clientY
+    }
+
+    const handleTouchEnd = () => {
+        interactionRef.current.isPanning = false
+        interactionRef.current.slotId = null
+    }
+
     const handleMouseUp = () => {
         interactionRef.current.isPanning = false
         interactionRef.current.slotId = null
@@ -219,6 +273,9 @@ export function CollageCanvas({
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchEnd}
         >
             {/* Hidden canvas for export */}
             <canvas ref={canvasRef} className="hidden" />
@@ -233,11 +290,7 @@ export function CollageCanvas({
                 {/* Spacer to force aspect ratio while fitting in parent */}
                 <img
                     src={`data:image/svg+xml;base64,${btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"></svg>`)}`}
-                    className="block max-w-full max-h-full w-auto h-auto opacity-0 pointer-events-none"
-                    style={{
-                        maxWidth: 'calc(100vw - 400px)', // Sidebar + padding safety
-                        maxHeight: 'calc(100vh - 150px)' // Header + padding safety
-                    }}
+                    className="block max-w-[calc(100vw-32px)] md:max-w-[calc(100vw-400px)] max-h-[50vh] md:max-h-[calc(100vh-150px)] w-auto h-auto opacity-0 pointer-events-none transition-all duration-300"
                     alt=""
                 />
 
@@ -260,16 +313,20 @@ export function CollageCanvas({
                                 onDrop={(e) => handleDrop(e, slot.id)}
                             >
                                 <div
-                                    className={`w-full h-full relative bg-muted flex items-center justify-center cursor-pointer overflow-hidden border-2 border-transparent hover:border-primary/50 transition-colors ${!img ? 'border-dashed border-muted-foreground/30' : ''}`}
+                                    className={`collage-slot w-full h-full relative bg-muted flex items-center justify-center cursor-pointer overflow-hidden border-2 border-transparent hover:border-primary/50 transition-colors ${!img ? 'border-dashed border-muted-foreground/30' : ''} ${selectedSlot === slot.id ? 'border-primary ring-2 ring-primary/20' : ''}`}
                                     style={{ borderRadius: `${borderRadius}px` }}
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                        e.stopPropagation()
                                         if (!img) {
                                             setActiveSlot(slot.id)
                                             fileInputRef.current?.click()
+                                        } else {
+                                            setSelectedSlot(selectedSlot === slot.id ? null : slot.id)
                                         }
                                     }}
                                     onWheel={(e) => handleWheel(e, slot.id)}
                                     onMouseDown={(e) => handleMouseDown(e, slot.id)}
+                                    onTouchStart={(e) => handleTouchStart(e, slot.id)}
                                 >
                                     {img ? (
                                         <>
@@ -287,7 +344,7 @@ export function CollageCanvas({
                                             />
 
                                             {/* Controls */}
-                                            <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className={`absolute top-2 right-2 flex gap-1 transition-opacity duration-200 ${selectedSlot === slot.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
                                                 <div
                                                     className="p-1 bg-black/50 text-white rounded-full cursor-grab active:cursor-grabbing hover:bg-primary/80"
                                                     draggable

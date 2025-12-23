@@ -99,7 +99,7 @@ END:VCARD`
     }
 
     return (
-        <div className="grid lg:grid-cols-3 gap-8 h-full">
+        <div className="grid lg:grid-cols-3 gap-8 lg:h-full h-auto pb-20 lg:pb-0">
             {/* Controls */}
             <div className="lg:col-span-1 space-y-6 bg-card p-6 rounded-2xl border shadow-sm h-fit">
 

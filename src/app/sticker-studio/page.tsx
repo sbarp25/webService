@@ -194,30 +194,32 @@ export default function StickerStudioPage() {
     }
 
     return (
-        <div className="flex h-screen bg-background overflow-hidden">
-            <StickerSidebar
-                borderSize={borderSize} setBorderSize={setBorderSize}
-                borderColor={borderColor} setBorderColor={setBorderColor}
-                hasImages={queue.length > 0}
-                currentFileName={queue[idx]?.name || ""}
-                onNext={() => setIdx(i => (i + 1) % queue.length)}
-                onPrev={() => setIdx(i => (i - 1 + queue.length) % queue.length)}
-                onExportPng={handleExportPng}
-                onExportZip={handleExportZip}
-                onEnterSheetMode={handleEnterSheetMode}
-                onReset={() => { setQueue([]); setIdx(0); setIsSheetMode(false); }}
-                isSheetMode={isSheetMode}
-                sheetSettings={{
-                    globalWidth, setGlobalWidth, applyGlobalWidth,
-                    sheetType, setSheetType: (v) => setSheetType(v),
-                    customW, setCustomW, customH, setCustomH,
-                    onExportSheet: handleExportSheet,
-                    onExitSheetMode: () => setIsSheetMode(false)
-                }}
-            />
+        <div className="flex flex-col md:flex-row h-screen bg-background overflow-hidden relative">
+            <div className="order-2 md:order-1 z-10">
+                <StickerSidebar
+                    borderSize={borderSize} setBorderSize={setBorderSize}
+                    borderColor={borderColor} setBorderColor={setBorderColor}
+                    hasImages={queue.length > 0}
+                    currentFileName={queue[idx]?.name || ""}
+                    onNext={() => setIdx(i => (i + 1) % queue.length)}
+                    onPrev={() => setIdx(i => (i - 1 + queue.length) % queue.length)}
+                    onExportPng={handleExportPng}
+                    onExportZip={handleExportZip}
+                    onEnterSheetMode={handleEnterSheetMode}
+                    onReset={() => { setQueue([]); setIdx(0); setIsSheetMode(false); }}
+                    isSheetMode={isSheetMode}
+                    sheetSettings={{
+                        globalWidth, setGlobalWidth, applyGlobalWidth,
+                        sheetType, setSheetType: (v) => setSheetType(v),
+                        customW, setCustomW, customH, setCustomH,
+                        onExportSheet: handleExportSheet,
+                        onExitSheetMode: () => setIsSheetMode(false)
+                    }}
+                />
+            </div>
 
-            <div className="flex-1 relative flex flex-col">
-                <header className="h-16 border-b border-border bg-card flex items-center px-6 justify-between z-10">
+            <div className="flex-1 relative flex flex-col min-h-0 order-1 md:order-2">
+                <header className="h-16 shrink-0 border-b border-border bg-card flex items-center px-6 justify-between z-10">
                     <div className="flex items-center gap-4">
                         <Link href="/" className="p-2 hover:bg-secondary rounded-full transition-colors">
                             <ArrowLeft size={20} />

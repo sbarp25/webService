@@ -136,25 +136,27 @@ export default function CircleCropperPage() {
     }
 
     return (
-        <div className="flex h-screen bg-background overflow-hidden">
-            <CropperSidebar
-                zoom={zoom} setZoom={setZoom}
-                rotation={rotation} setRotation={setRotation}
-                borderWidth={borderWidth} setBorderWidth={setBorderWidth}
-                borderColor={borderColor} setBorderColor={setBorderColor}
-                isBgTransparent={isBgTransparent} setIsBgTransparent={setIsBgTransparent}
-                bgColor={bgColor} setBgColor={setBgColor}
-                outputSize={outputSize} setOutputSize={setOutputSize}
-                outputFormat={outputFormat} setOutputFormat={(v) => setOutputFormat(v)}
-                onSave={handleSave}
-                onSkip={() => setCurrentIndex(prev => Math.min(prev + 1, images.length - 1))}
-                onReset={resetEditor}
-                hasImage={!!currentImgObj}
-                fileName={images[currentIndex]?.name || ""}
-            />
+        <div className="flex flex-col md:flex-row h-screen bg-background overflow-hidden relative">
+            <div className="order-2 md:order-1 z-10">
+                <CropperSidebar
+                    zoom={zoom} setZoom={setZoom}
+                    rotation={rotation} setRotation={setRotation}
+                    borderWidth={borderWidth} setBorderWidth={setBorderWidth}
+                    borderColor={borderColor} setBorderColor={setBorderColor}
+                    isBgTransparent={isBgTransparent} setIsBgTransparent={setIsBgTransparent}
+                    bgColor={bgColor} setBgColor={setBgColor}
+                    outputSize={outputSize} setOutputSize={setOutputSize}
+                    outputFormat={outputFormat} setOutputFormat={(v) => setOutputFormat(v)}
+                    onSave={handleSave}
+                    onSkip={() => setCurrentIndex(prev => Math.min(prev + 1, images.length - 1))}
+                    onReset={resetEditor}
+                    hasImage={!!currentImgObj}
+                    fileName={images[currentIndex]?.name || ""}
+                />
+            </div>
 
-            <div className="flex-1 relative flex flex-col">
-                <header className="h-16 border-b border-border bg-card flex items-center px-6 justify-between z-10">
+            <div className="flex-1 relative flex flex-col min-h-0 order-1 md:order-2">
+                <header className="h-16 shrink-0 border-b border-border bg-card flex items-center px-6 justify-between z-10">
                     <div className="flex items-center gap-4">
                         <Link href="/" className="p-2 hover:bg-secondary rounded-full transition-colors">
                             <ArrowLeft size={20} />

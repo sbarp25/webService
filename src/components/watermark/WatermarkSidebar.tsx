@@ -28,8 +28,8 @@ export function WatermarkSidebar({
     }
 
     return (
-        <aside className="w-80 bg-card border-r border-border flex flex-col h-full z-20 shadow-xl">
-            <div className="p-6 border-b border-border">
+        <aside className="w-full md:w-80 bg-card border-r border-border flex flex-col h-[50vh] md:h-full z-20 shadow-xl overflow-hidden">
+            <div className="p-6 border-b border-border hidden md:block">
                 <h2 className="font-bold text-xl text-primary flex items-center gap-2">
                     <LayoutGrid size={20} />
                     Watermark Tool
@@ -193,7 +193,7 @@ export function WatermarkSidebar({
                 </div>
             </div>
 
-            <div className="p-6 border-t border-border bg-card">
+            <div className="p-4 md:p-6 border-t border-border bg-card">
                 <button
                     onClick={onExport}
                     disabled={!hasImage}

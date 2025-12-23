@@ -30,8 +30,8 @@ export function CollageSidebar({
     onExport
 }: CollageSidebarProps) {
     return (
-        <aside className="w-80 shrink-0 bg-card border-r border-border flex flex-col h-full z-30 shadow-xl">
-            <div className="p-6 border-b border-border">
+        <aside className="w-full md:w-80 shrink-0 bg-card border-r border-border flex flex-col h-[50vh] md:h-full z-30 shadow-xl overflow-hidden">
+            <div className="p-6 border-b border-border hidden md:block">
                 <h2 className="font-bold text-xl text-primary flex items-center gap-2">
                     <Layout size={20} />
                     Collage Maker
@@ -128,7 +128,7 @@ export function CollageSidebar({
                 </div>
             </div>
 
-            <div className="p-6 border-t border-border bg-card">
+            <div className="p-4 md:p-6 border-t border-border bg-card">
                 <button
                     onClick={onExport}
                     className="w-full py-2.5 rounded-full font-medium transition-all flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20"

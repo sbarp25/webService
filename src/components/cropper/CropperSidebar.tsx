@@ -40,7 +40,7 @@ export function CropperSidebar({
     hasImage, fileName
 }: CropperSidebarProps) {
     return (
-        <div className="w-full md:w-80 bg-card border-r border-border p-6 flex flex-col gap-8 overflow-y-auto h-full z-10 shadow-sm">
+        <div className="w-full md:w-80 bg-card border-r border-border p-4 md:p-6 flex flex-col gap-8 overflow-y-auto h-[40vh] md:h-full z-10 shadow-sm">
             <div className="space-y-1">
                 <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">File Info</h2>
                 <div className={`p-3 rounded-lg bg-secondary/50 border border-border text-sm font-medium text-primary transition-opacity duration-300 ${hasImage ? 'opacity-100' : 'opacity-50'}`}>
@@ -148,14 +148,14 @@ export function CropperSidebar({
                 <div className="grid grid-cols-3 gap-2">
                     <button
                         onClick={onSkip}
-                        className="col-span-1 px-4 py-3 rounded-xl bg-secondary text-secondary-foreground font-semibold hover:bg-secondary/80 transition-colors text-sm"
+                        className="col-span-1 px-4 py-2 md:py-3 rounded-xl bg-secondary text-secondary-foreground font-semibold hover:bg-secondary/80 transition-colors text-sm"
                     >
                         Skip
                     </button>
                     <button
                         onClick={onSave}
                         disabled={!hasImage}
-                        className="col-span-2 px-4 py-3 rounded-xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                        className="col-span-2 px-4 py-2 md:py-3 rounded-xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                     >
                         Save & Next
                     </button>

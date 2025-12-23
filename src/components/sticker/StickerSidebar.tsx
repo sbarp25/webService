@@ -61,7 +61,7 @@ export function StickerSidebar({
 
     if (isSheetMode && sheetSettings) {
         return (
-            <div className="w-full md:w-80 bg-card border-r border-border p-6 flex flex-col gap-6 overflow-y-auto h-full z-10 shadow-sm">
+            <div className="w-full md:w-80 bg-card border-r border-border p-4 md:p-6 flex flex-col gap-6 overflow-y-auto h-[40vh] md:h-full z-10 shadow-sm">
                 <div className="flex items-center gap-2 text-primary mb-2">
                     <LayoutGrid size={20} />
                     <h2 className="font-bold text-lg">Sheet Layout</h2>
@@ -133,14 +133,14 @@ export function StickerSidebar({
                 <div className="mt-auto space-y-3">
                     <button
                         onClick={sheetSettings.onExportSheet}
-                        className="w-full px-4 py-3 rounded-xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
+                        className="w-full px-4 py-2 md:py-3 rounded-xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
                     >
                         <Download size={18} />
                         Save Artboard
                     </button>
                     <button
                         onClick={sheetSettings.onExitSheetMode}
-                        className="w-full px-4 py-3 rounded-xl bg-secondary text-secondary-foreground font-semibold hover:bg-secondary/80 transition-colors"
+                        className="w-full px-4 py-2 md:py-3 rounded-xl bg-secondary text-secondary-foreground font-semibold hover:bg-secondary/80 transition-colors"
                     >
                         Back to Editor
                     </button>
@@ -150,7 +150,7 @@ export function StickerSidebar({
     }
 
     return (
-        <div className="w-full md:w-80 bg-card border-r border-border p-6 flex flex-col gap-6 overflow-y-auto h-full z-10 shadow-sm">
+        <div className="w-full md:w-80 bg-card border-r border-border p-4 md:p-6 flex flex-col gap-6 overflow-y-auto h-[40vh] md:h-full z-10 shadow-sm">
             <div className="space-y-1">
                 <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Current File</h2>
                 <div className={`p-3 rounded-lg bg-secondary/50 border border-border text-sm font-medium text-primary truncate ${hasImages ? 'opacity-100' : 'opacity-50'}`}>
@@ -205,7 +205,7 @@ export function StickerSidebar({
                 <button
                     onClick={onExportPng}
                     disabled={!hasImages}
-                    className="w-full px-4 py-3 rounded-xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="w-full px-4 py-2 md:py-3 rounded-xl bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                     <Download size={18} />
                     Export PNG
@@ -213,7 +213,7 @@ export function StickerSidebar({
                 <button
                     onClick={onExportZip}
                     disabled={!hasImages}
-                    className="w-full px-4 py-3 rounded-xl bg-secondary text-secondary-foreground font-semibold hover:bg-secondary/80 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="w-full px-4 py-2 md:py-3 rounded-xl bg-secondary text-secondary-foreground font-semibold hover:bg-secondary/80 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                     <Archive size={18} />
                     Download ZIP
@@ -225,7 +225,7 @@ export function StickerSidebar({
             <button
                 onClick={onEnterSheetMode}
                 disabled={!hasImages}
-                className="w-full px-4 py-3 rounded-xl bg-pink-500 text-white font-semibold hover:bg-pink-600 transition-colors shadow-lg shadow-pink-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full px-4 py-2 md:py-3 rounded-xl bg-pink-500 text-white font-semibold hover:bg-pink-600 transition-colors shadow-lg shadow-pink-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
             >
                 <LayoutGrid size={18} />
                 Organize Artboard

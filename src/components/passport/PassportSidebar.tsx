@@ -26,8 +26,8 @@ export function PassportSidebar({
     hasImage
 }: PassportSidebarProps) {
     return (
-        <aside className="w-80 bg-card border-r border-border flex flex-col h-full z-20 shadow-xl">
-            <div className="p-6 border-b border-border">
+        <aside className="w-full md:w-80 bg-card border-r border-border flex flex-col h-[50vh] md:h-full z-20 shadow-xl overflow-hidden">
+            <div className="p-6 border-b border-border hidden md:block">
                 <h2 className="font-bold text-xl text-primary flex items-center gap-2">
                     <Grid size={20} />
                     Passport Maker
@@ -91,11 +91,11 @@ export function PassportSidebar({
                 </div>
             </div>
 
-            <div className="p-6 border-t border-border space-y-3 bg-card">
+            <div className="p-4 md:p-6 border-t border-border space-y-3 bg-card">
                 <button
                     onClick={onExportSingle}
                     disabled={!hasImage}
-                    className="w-full py-2.5 rounded-full font-medium transition-all flex items-center justify-center gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full py-2 md:py-2.5 rounded-full font-medium transition-all flex items-center justify-center gap-2 bg-secondary text-secondary-foreground hover:bg-secondary/80 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <Save size={18} />
                     Save Single Photo
@@ -103,7 +103,7 @@ export function PassportSidebar({
                 <button
                     onClick={onExportSheet}
                     disabled={!hasImage}
-                    className="w-full py-2.5 rounded-full font-medium transition-all flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full py-2 md:py-2.5 rounded-full font-medium transition-all flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <Download size={18} />
                     Save Printable Sheet

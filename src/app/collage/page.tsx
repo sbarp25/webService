@@ -34,25 +34,27 @@ export default function CollagePage() {
     }
 
     return (
-        <div className="flex h-screen bg-background overflow-hidden">
-            <CollageSidebar
-                layoutId={layoutId}
-                setLayoutId={setLayoutId}
-                aspectRatioId={aspectRatioId}
-                setAspectRatioId={setAspectRatioId}
-                spacing={spacing}
-                setSpacing={setSpacing}
-                borderRadius={borderRadius}
-                setBorderRadius={setBorderRadius}
-                background={background}
-                setBackground={setBackground}
-                customSize={customSize}
-                setCustomSize={setCustomSize}
-                onExport={handleExport}
-            />
+        <div className="flex flex-col md:flex-row h-screen bg-background overflow-hidden relative">
+            <div className="order-2 md:order-1 z-30">
+                <CollageSidebar
+                    layoutId={layoutId}
+                    setLayoutId={setLayoutId}
+                    aspectRatioId={aspectRatioId}
+                    setAspectRatioId={setAspectRatioId}
+                    spacing={spacing}
+                    setSpacing={setSpacing}
+                    borderRadius={borderRadius}
+                    setBorderRadius={setBorderRadius}
+                    background={background}
+                    setBackground={setBackground}
+                    customSize={customSize}
+                    setCustomSize={setCustomSize}
+                    onExport={handleExport}
+                />
+            </div>
 
-            <div className="flex-1 relative flex flex-col">
-                <header className="h-16 border-b border-border bg-card flex items-center px-6 gap-4 z-10">
+            <div className="flex-1 relative flex flex-col min-h-0 order-1 md:order-2">
+                <header className="h-16 shrink-0 border-b border-border bg-card flex items-center px-6 gap-4 z-10">
                     <Link href="/" className="p-2 hover:bg-secondary rounded-full transition-colors">
                         <ArrowLeft size={20} />
                     </Link>

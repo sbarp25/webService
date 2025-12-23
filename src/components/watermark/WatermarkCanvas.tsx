@@ -63,6 +63,43 @@ export function WatermarkCanvas({
         isDragging.current = false
     }
 
+    const handleTouchStart = (e: React.TouchEvent) => {
+        if (settings.isTiled) return
+        isDragging.current = true
+        const touch = e.touches[0]
+        lastPos.current = { x: touch.clientX, y: touch.clientY }
+        setSettings({ position: 'custom' })
+    }
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        if (!isDragging.current || settings.isTiled) return
+        const touch = e.touches[0]
+
+        // Prevent scrolling while dragging watermark
+        if (e.cancelable) e.preventDefault()
+
+        const dx = touch.clientX - lastPos.current.x
+        const dy = touch.clientY - lastPos.current.y
+
+        // Scale delta to canvas space
+        if (canvasRef.current) {
+            const rect = canvasRef.current.getBoundingClientRect()
+            const scaleX = canvasRef.current.width / rect.width
+            const scaleY = canvasRef.current.height / rect.height
+
+            setSettings({
+                customX: settings.customX + dx * scaleX,
+                customY: settings.customY + dy * scaleY
+            })
+        }
+
+        lastPos.current = { x: touch.clientX, y: touch.clientY }
+    }
+
+    const handleTouchEnd = () => {
+        isDragging.current = false
+    }
+
     return (
         <div
             ref={containerRef}
@@ -71,10 +108,14 @@ export function WatermarkCanvas({
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchEnd}
         >
             <canvas
                 ref={canvasRef}
-                className={`shadow-2xl border-4 border-white/10 max-w-full max-h-full ${!settings.isTiled ? 'cursor-move' : ''}`}
+                className={`shadow-2xl border-4 border-white/10 max-w-full max-h-full transition-all ${!settings.isTiled ? 'cursor-move' : ''}`}
             />
         </div>
     )
