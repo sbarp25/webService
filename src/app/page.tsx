@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Scissors, Sticker, UserSquare, LayoutGrid, Layout } from "lucide-react"
+import { Scissors, Sticker, UserSquare, LayoutGrid, Layout, RefreshCw } from "lucide-react"
 
 export default function Home() {
   return (
@@ -116,6 +116,27 @@ export default function Home() {
               </div>
               <span className="inline-flex items-center justify-center rounded-full bg-pink-500/10 px-4 py-1.5 text-sm font-medium text-pink-600 group-hover:bg-pink-600 group-hover:text-white transition-colors">
                 Create Collage
+              </span>
+            </div>
+          </Link>
+
+          <Link
+            href="/image-converter"
+            className="group relative overflow-hidden rounded-3xl border bg-card p-8 hover:border-orange-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-orange-500/10"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-amber-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="relative z-10 flex flex-col items-center text-center space-y-6">
+              <div className="p-6 rounded-2xl bg-orange-500/10 text-orange-600 group-hover:scale-110 transition-transform duration-300">
+                <RefreshCw size={48} />
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-2xl font-bold">Image Converter</h2>
+                <p className="text-muted-foreground">
+                  Convert images between PNG, JPEG, and WebP formats with quality control and batch processing.
+                </p>
+              </div>
+              <span className="inline-flex items-center justify-center rounded-full bg-orange-500/10 px-4 py-1.5 text-sm font-medium text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-colors">
+                Start Converting
               </span>
             </div>
           </Link>
