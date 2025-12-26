@@ -11,7 +11,7 @@ import confetti from 'canvas-confetti'
 import { pusherClient } from '@/lib/pusher'
 
 type GameState = 'LOBBY' | 'MATCHING' | 'PLAYING' | 'COMPLETED'
-
+//ok
 export default function PuzzlePage() {
     const [gameState, setGameState] = useState<GameState>('LOBBY')
     const [isComplete, setIsComplete] = useState(false)
