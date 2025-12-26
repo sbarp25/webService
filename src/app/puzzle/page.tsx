@@ -24,9 +24,19 @@ export default function PuzzlePage() {
         // Global Lobby for online count
         const channel = pusherClient.subscribe('presence-lobby')
 
-        // This would normally need the auth endpoint configured in pusherClient
-        // For development/instant, we'll try to use a public channel if auth fails
-        // but let's assume auth route is working.
+        channel.bind('pusher:subscription_succeeded', (members: any) => {
+            setOnlineCount(members.count)
+        })
+
+        channel.bind('pusher:member_added', () => {
+            // @ts-ignore
+            setOnlineCount(channel.members.count)
+        })
+
+        channel.bind('pusher:member_removed', () => {
+            // @ts-ignore
+            setOnlineCount(channel.members.count)
+        })
 
         return () => {
             pusherClient.unsubscribe('presence-lobby')
