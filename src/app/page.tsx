@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Scissors, Sticker, UserSquare, LayoutGrid, Layout, RefreshCw } from "lucide-react"
+import { Scissors, Sticker, UserSquare, LayoutGrid, Layout, RefreshCw, Users } from "lucide-react"
 
 export default function Home() {
   const structuredData = {
@@ -57,6 +57,31 @@ export default function Home() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Link
+              href="/puzzle"
+              className="group relative overflow-hidden rounded-3xl border bg-card p-4 border-primary/30 hover:border-primary/50 transition-all duration-300 hover:shadow-2xl hover:shadow-primary/10"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative z-10 flex flex-col items-center text-center space-y-4">
+                <div className="p-4 rounded-2xl bg-primary/20 text-primary group-hover:scale-110 transition-transform duration-300 relative">
+                  <Users size={36} />
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-4 w-4 bg-primary text-[8px] items-center justify-center text-white font-black">NEW</span>
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  <h2 className="text-xl font-bold">Instant Team Puzzle</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Match with a partner instantly, solve a puzzle together, and unlock chat.
+                  </p>
+                </div>
+                <span className="inline-flex items-center justify-center rounded-full bg-primary text-white px-4 py-1.5 text-sm font-black transition-all group-hover:px-6">
+                  Play Now
+                </span>
+              </div>
+            </Link>
+
             <Link
               href="/qr-code"
               className="group relative overflow-hidden rounded-3xl border bg-card p-4 hover:border-violet-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-violet-500/10"
@@ -205,7 +230,7 @@ export default function Home() {
             </Link>
           </div>
         </div>
-      </main>
+      </main >
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
