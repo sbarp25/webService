@@ -54,13 +54,20 @@ export default function PuzzleBoard({
 
         // Subscribe to Pusher
         const channel = pusherClient.subscribe(`room-${roomId}`)
-        channel.bind('piece-moved', (data: { pieceId: number, currentPos: { x: number, y: number }, senderId: string }) => {
+        channel.bind('piece-moved', (data: { pieceId: number, currentPos: { x: number, y: number }, senderId: string, isLocked: boolean }) => {
             if (data.senderId !== playerId) {
                 setPieces(prev => prev.map(p =>
                     p.id === data.pieceId
-                        ? { ...p, currentPos: data.currentPos, lastMovedBy: data.senderId }
+                        ? { ...p, currentPos: data.currentPos, lastMovedBy: data.senderId, isLocked: data.isLocked || p.isLocked }
                         : p
                 ))
+            }
+        })
+
+        channel.bind('puzzle-completed', (data: { senderId: string }) => {
+            if (data.senderId !== playerId) {
+                setIsComplete(true)
+                onComplete()
             }
         })
 
@@ -69,15 +76,27 @@ export default function PuzzleBoard({
         }
     }, [roomId, playerId])
 
-    const broadcastMove = async (pieceId: number, currentPos: { x: number, y: number }) => {
+    const broadcastMove = async (pieceId: number, currentPos: { x: number, y: number }, isLocked: boolean) => {
         try {
             await fetch('/api/puzzle/move', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ roomId, pieceId, currentPos, senderId: playerId })
+                body: JSON.stringify({ roomId, pieceId, currentPos, senderId: playerId, isLocked })
             })
         } catch (e) {
             console.error('Failed to broadcast move', e)
+        }
+    }
+
+    const broadcastComplete = async () => {
+        try {
+            await fetch('/api/puzzle/complete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ roomId, senderId: playerId })
+            })
+        } catch (e) {
+            console.error('Failed to broadcast completion', e)
         }
     }
 
@@ -100,21 +119,22 @@ export default function PuzzleBoard({
             setPieces(prev => prev.map(p =>
                 p.id === id ? { ...p, currentPos: snappedPos, isLocked: true } : p
             ))
-            broadcastMove(id, snappedPos)
+            broadcastMove(id, snappedPos, true)
         } else {
             setPieces(prev => prev.map(p =>
                 p.id === id ? { ...p, currentPos: finalPos } : p
             ))
-            broadcastMove(id, finalPos)
+            broadcastMove(id, finalPos, false)
         }
     }
 
     useEffect(() => {
-        if (pieces.length > 0 && pieces.every(p => p.isLocked)) {
+        if (pieces.length > 0 && pieces.every(p => p.isLocked) && !isComplete) {
             setIsComplete(true)
             onComplete()
+            broadcastComplete()
         }
-    }, [pieces, onComplete])
+    }, [pieces, onComplete, isComplete])
 
     return (
         <div className="relative w-full h-[600px] bg-secondary/20 rounded-3xl overflow-hidden border border-border/50 backdrop-blur-sm shadow-inner" ref={containerRef}>

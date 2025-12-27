@@ -16,57 +16,23 @@ interface Message {
 export default function InstantChat({
     isUnlocked,
     roomId = "demo",
-    playerId = "player-" + Math.random().toString(36).substr(2, 5)
+    playerId = "player-default",
+    messages,
+    onSendMessage
 }: {
     isUnlocked: boolean,
     roomId?: string,
-    playerId?: string
+    playerId?: string,
+    messages: Message[],
+    onSendMessage: (text: string) => void
 }) {
-    const [messages, setMessages] = useState<Message[]>([])
     const [input, setInput] = useState('')
     const scrollRef = useRef<HTMLDivElement>(null)
 
-    useEffect(() => {
-        const channel = pusherClient.subscribe(`room-${roomId}`)
-        channel.bind('new-message', (data: { text: string, senderId: string, timestamp: string }) => {
-            if (data.senderId !== playerId) {
-                setMessages(prev => [...prev, {
-                    id: Math.random().toString(36),
-                    text: data.text,
-                    sender: 'partner',
-                    timestamp: new Date(data.timestamp),
-                    senderId: data.senderId
-                }])
-            }
-        })
-
-        return () => {
-            pusherClient.unsubscribe(`room-${roomId}`)
-        }
-    }, [roomId, playerId])
-
-    const handleSend = async () => {
+    const handleSend = () => {
         if (!input.trim()) return
-        const text = input
+        onSendMessage(input)
         setInput('')
-
-        // Optimistic update
-        setMessages(prev => [...prev, {
-            id: Math.random().toString(36),
-            text: text,
-            sender: 'me',
-            timestamp: new Date()
-        }])
-
-        try {
-            await fetch('/api/puzzle/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ roomId, message: text, senderId: playerId })
-            })
-        } catch (e) {
-            console.error('Failed to send message', e)
-        }
     }
 
     useEffect(() => {

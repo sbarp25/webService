@@ -19,6 +19,8 @@ export default function PuzzlePage() {
     const [playerId] = useState(() => "user-" + Math.random().toString(36).substr(2, 5))
     const [partnerName, setPartnerName] = useState('Anita') // Default mock
     const [onlineCount, setOnlineCount] = useState(0)
+    const [messages, setMessages] = useState<any[]>([])
+    const [localPlayerId] = useState(playerId)
 
     useEffect(() => {
         // Global Lobby for online count
@@ -53,7 +55,10 @@ export default function PuzzlePage() {
                 const memberIds = Object.keys(members.members).sort()
                 const hostId = memberIds[0]
                 const guestId = memberIds[1]
+                console.log('Match Ready! Member IDs:', memberIds)
                 const generatedRoomId = `game-${hostId}-${guestId}`
+                console.log('Generated Room ID:', generatedRoomId)
+                console.log('Local Player ID:', playerId)
 
                 setRoomId(generatedRoomId)
                 setGameState('PLAYING')
@@ -62,21 +67,62 @@ export default function PuzzlePage() {
         }
 
         matchChannel.bind('pusher:subscription_succeeded', (members: any) => {
+            console.log('--- Matchmaking: Subscribed! Members:', members)
             setOnlineCount(members.count)
-            startIfReady(members)
+            // @ts-ignore
+            startIfReady(matchChannel.members)
         })
 
-        matchChannel.bind('pusher:member_added', () => {
-            // Re-check members when someone joins
+        matchChannel.bind('pusher:member_added', (member: any) => {
+            console.log('--- Matchmaking: Member Joined:', member)
             // @ts-ignore
             startIfReady(matchChannel.members)
         })
 
         matchChannel.bind('pusher:subscription_error', (error: any) => {
-            console.error('Pusher Subscription Error:', error)
-            alert("Pusher Error: Make sure PUSHER_APP_ID, NEXT_PUBLIC_PUSHER_KEY, etc. are correctly set in .env.local and that you have enabled Client Events and Presence Channels in your Pusher dashboard.")
+            console.error('--- Matchmaking: Pusher Subscription Error:', error)
             setGameState('LOBBY')
         })
+    }
+
+    useEffect(() => {
+        if (!roomId) return
+
+        console.log(`--- Game: Subscribing to room-${roomId} ---`)
+        const channel = pusherClient.subscribe(`room-${roomId}`)
+
+        channel.bind('new-message', (data: { text: string, senderId: string, timestamp: string }) => {
+            console.log('--- Game: Message Received ---', data)
+            if (data.senderId !== localPlayerId) {
+                setMessages(prev => [...prev, {
+                    id: Math.random().toString(36),
+                    text: data.text,
+                    sender: 'partner',
+                    timestamp: new Date(data.timestamp),
+                    senderId: data.senderId
+                }])
+            }
+        })
+
+        return () => {
+            console.log(`--- Game: Unsubscribing from room-${roomId} ---`)
+            pusherClient.unsubscribe(`room-${roomId}`)
+        }
+    }, [roomId, localPlayerId])
+
+    const sendMessage = async (text: string) => {
+        if (!text.trim() || !roomId) return
+        const newMessage = { id: Math.random().toString(36), text, sender: 'me' as const, timestamp: new Date() }
+        setMessages(prev => [...prev, newMessage])
+        try {
+            await fetch('/api/puzzle/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ roomId, text, senderId: localPlayerId })
+            })
+        } catch (e) {
+            console.error('Failed to send message', e)
+        }
     }
 
     const handleSolve = () => {
@@ -235,7 +281,7 @@ export default function PuzzlePage() {
                                 <PuzzleBoard
                                     onComplete={handleSolve}
                                     roomId={roomId}
-                                    playerId={playerId}
+                                    playerId={localPlayerId}
                                 />
                             </motion.div>
                         )}
@@ -247,7 +293,9 @@ export default function PuzzlePage() {
                     <InstantChat
                         isUnlocked={isComplete}
                         roomId={roomId}
-                        playerId={playerId}
+                        playerId={localPlayerId}
+                        messages={messages}
+                        onSendMessage={sendMessage}
                     />
 
                     <div className="bg-card border border-border rounded-3xl p-6 space-y-4">
