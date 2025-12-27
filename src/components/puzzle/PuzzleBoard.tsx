@@ -1,11 +1,10 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { LayoutGrid, Users, MessageSquare, Zap } from 'lucide-react'
-import { pusherClient } from '@/lib/pusher'
+import React, { useRef } from 'react'
+import { motion } from 'framer-motion'
+import { Users } from 'lucide-react'
 
-interface Piece {
+export interface Piece {
     id: number
     currentPos: { x: number; y: number }
     targetPos: { x: number; y: number }
@@ -21,84 +20,19 @@ const SNAP_THRESHOLD = 20
 export default function PuzzleBoard({
     imageUrl = "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&q=80",
     roomId = "demo",
-    playerId = "player-" + Math.random().toString(36).substr(2, 5),
-    onComplete
+    localPlayerId = "player-default",
+    pieces,
+    setPieces,
+    onBroadcastMove
 }: {
     imageUrl?: string,
     roomId?: string,
-    playerId?: string,
-    onComplete: () => void
+    localPlayerId: string,
+    pieces: Piece[],
+    setPieces: React.Dispatch<React.SetStateAction<Piece[]>>,
+    onBroadcastMove: (pieceId: number, currentPos: { x: number, y: number }, isLocked: boolean) => void
 }) {
-    const [pieces, setPieces] = useState<Piece[]>([])
-    const [isComplete, setIsComplete] = useState(false)
     const containerRef = useRef<HTMLDivElement>(null)
-
-    useEffect(() => {
-        // Initialize pieces in random positions
-        const newPieces: Piece[] = []
-        for (let row = 0; row < GRID_SIZE.rows; row++) {
-            for (let col = 0; col < GRID_SIZE.cols; col++) {
-                const id = row * GRID_SIZE.cols + col
-                newPieces.push({
-                    id,
-                    targetPos: { x: col * PIECE_WIDTH, y: row * PIECE_HEIGHT },
-                    currentPos: {
-                        x: Math.random() * 200 + 450,
-                        y: Math.random() * 200 + 50
-                    },
-                    isLocked: false
-                })
-            }
-        }
-        setPieces(newPieces)
-
-        // Subscribe to Pusher
-        const channel = pusherClient.subscribe(`room-${roomId}`)
-        channel.bind('piece-moved', (data: { pieceId: number, currentPos: { x: number, y: number }, senderId: string, isLocked: boolean }) => {
-            if (data.senderId !== playerId) {
-                setPieces(prev => prev.map(p =>
-                    p.id === data.pieceId
-                        ? { ...p, currentPos: data.currentPos, lastMovedBy: data.senderId, isLocked: data.isLocked || p.isLocked }
-                        : p
-                ))
-            }
-        })
-
-        channel.bind('puzzle-completed', (data: { senderId: string }) => {
-            if (data.senderId !== playerId) {
-                setIsComplete(true)
-                onComplete()
-            }
-        })
-
-        return () => {
-            pusherClient.unsubscribe(`room-${roomId}`)
-        }
-    }, [roomId, playerId])
-
-    const broadcastMove = async (pieceId: number, currentPos: { x: number, y: number }, isLocked: boolean) => {
-        try {
-            await fetch('/api/puzzle/move', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ roomId, pieceId, currentPos, senderId: playerId, isLocked })
-            })
-        } catch (e) {
-            console.error('Failed to broadcast move', e)
-        }
-    }
-
-    const broadcastComplete = async () => {
-        try {
-            await fetch('/api/puzzle/complete', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ roomId, senderId: playerId })
-            })
-        } catch (e) {
-            console.error('Failed to broadcast completion', e)
-        }
-    }
 
     const handleDragEnd = (id: number, info: any) => {
         const piece = pieces.find(p => p.id === id)
@@ -119,22 +53,14 @@ export default function PuzzleBoard({
             setPieces(prev => prev.map(p =>
                 p.id === id ? { ...p, currentPos: snappedPos, isLocked: true } : p
             ))
-            broadcastMove(id, snappedPos, true)
+            onBroadcastMove(id, snappedPos, true)
         } else {
             setPieces(prev => prev.map(p =>
                 p.id === id ? { ...p, currentPos: finalPos } : p
             ))
-            broadcastMove(id, finalPos, false)
+            onBroadcastMove(id, finalPos, false)
         }
     }
-
-    useEffect(() => {
-        if (pieces.length > 0 && pieces.every(p => p.isLocked) && !isComplete) {
-            setIsComplete(true)
-            onComplete()
-            broadcastComplete()
-        }
-    }, [pieces, onComplete, isComplete])
 
     return (
         <div className="relative w-full h-[600px] bg-secondary/20 rounded-3xl overflow-hidden border border-border/50 backdrop-blur-sm shadow-inner" ref={containerRef}>
@@ -186,7 +112,7 @@ export default function PuzzleBoard({
                 </motion.div>
             ))}
 
-            {/* Ghost Piece Indicator (Placeholder for multiplier) */}
+            {/* Ghost Piece Indicator */}
             <div className="absolute bottom-8 right-8 flex items-center gap-2 px-4 py-2 bg-background/50 backdrop-blur-md border border-border rounded-full text-xs font-medium text-muted-foreground">
                 <Users size={14} className="text-primary" />
                 Collaborating...
