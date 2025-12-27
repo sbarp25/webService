@@ -2,7 +2,9 @@ import PusherServer from 'pusher'
 import PusherClient from 'pusher-js'
 
 // Server-side Pusher (for triggering events)
-if (!process.env.PUSHER_APP_ID || !process.env.PUSHER_SECRET) {
+const isServer = typeof window === 'undefined';
+
+if (isServer && (!process.env.PUSHER_APP_ID || !process.env.PUSHER_SECRET)) {
     console.warn('WARNING: Pusher Server credentials missing! Real-time features will fail in production.')
 }
 
