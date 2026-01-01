@@ -24,6 +24,12 @@ export default function PuzzlePage() {
     const [messages, setMessages] = useState<any[]>([])
     const [pieces, setPieces] = useState<Piece[]>([])
 
+    // User Profile for Matchmaking
+    const [userName, setUserName] = useState('')
+    const [userGender, setUserGender] = useState('Male')
+    const [matchPreference, setMatchPreference] = useState('Any')
+    const [partnerName, setPartnerName] = useState('Partner')
+
     // 1. Online Count Effect
     useEffect(() => {
         const channel = pusherClient.subscribe('presence-lobby')
@@ -112,12 +118,55 @@ export default function PuzzlePage() {
     }, [pieces, isComplete])
 
     const startMatchmaking = () => {
+        if (!userName.trim()) {
+            alert("Please enter your name first!")
+            return
+        }
+
         setGameState('MATCHING')
-        const matchChannel = pusherClient.subscribe('presence-searching')
+
+        // 1. Create a "Rich ID" that contains all metadata
+        // Format: ID|Name|Gender|Pref
+        const richId = `${localPlayerId}|${userName}|${userGender}|${matchPreference}`
+        console.log('--- Matchmaking: Using Rich ID ---', richId)
+
+        // 2. Custom Authorizer to guarantee this ID is sent
+        const matchChannel = (pusherClient as any).subscribe('presence-searching', {
+            authorizer: ({ name }: any) => {
+                return {
+                    authorize: (socketId: string, callback: any) => {
+                        fetch('/api/pusher/auth', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: new URLSearchParams({
+                                socket_id: socketId,
+                                channel_name: name,
+                                'x-user-id': richId // Send the composite ID
+                            }).toString()
+                        })
+                            .then(res => res.json())
+                            .then(data => callback(null, data))
+                            .catch(err => callback(err, null))
+                    }
+                }
+            }
+        })
 
         const startIfReady = (members: any) => {
             if (members.count >= 2) {
+                // Wait for everyone to have their metadata
                 const memberIds = Object.keys(members.members).sort()
+
+                // Capture partner name from metadata
+                const partnerId = memberIds.find(id => id !== localPlayerId)
+                const partnerInfo = members.members[partnerId!]
+
+                console.log('--- Matchmaking: Partner Info Received ---', partnerInfo)
+
+                if (partnerInfo) {
+                    setPartnerName(partnerInfo.name || 'Partner')
+                }
+
                 const hostId = memberIds[0]
                 const guestId = memberIds[1]
                 const generatedRoomId = `game-${hostId}-${guestId}`
@@ -245,12 +294,59 @@ export default function PuzzlePage() {
                             >
                                 <div className="absolute top-0 right-0 p-12 opacity-10 blur-2xl"><div className="w-64 h-64 bg-primary rounded-full" /></div>
                                 <div className="w-24 h-24 bg-primary/20 rounded-3xl flex items-center justify-center rotate-6 shadow-2xl shadow-primary/20 relative z-10"><Zap size={48} className="text-primary" /></div>
-                                <div className="space-y-4 relative z-10"><h2 className="text-5xl font-black tracking-tighter">Teamwork Starts Here</h2><p className="text-lg text-muted-foreground max-w-sm mx-auto">Pair up instantly to solve a photo puzzle and unlock a private chat with your teammate.</p></div>
-                                <button onClick={startMatchmaking} className="group relative px-8 py-4 bg-primary text-primary-foreground rounded-2xl font-black text-xl flex items-center gap-3 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-primary/30 overflow-hidden">
-                                    <span className="relative z-10 text-uppercase">FIND A PARTNER</span>
-                                    <ArrowRight size={24} className="relative z-10 group-hover:translate-x-1 transition-transform" />
-                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
-                                </button>
+                                <div className="space-y-4 relative z-10">
+                                    <h2 className="text-5xl font-black tracking-tighter">Teamwork Starts Here</h2>
+                                    <p className="text-lg text-muted-foreground max-w-sm mx-auto">Set your profile and find a teammate.</p>
+                                </div>
+
+                                {/* Profile Form */}
+                                <div className="w-full max-w-sm space-y-6 relative z-10 bg-background/40 backdrop-blur-xl p-8 rounded-[2rem] border border-white/10 shadow-2xl">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest opacity-50 block text-left ml-2">What's your name?</label>
+                                        <input
+                                            value={userName}
+                                            onChange={(e) => setUserName(e.target.value)}
+                                            placeholder="Your name..."
+                                            className="w-full bg-background/50 border border-white/10 rounded-2xl px-6 py-4 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest opacity-50 block text-left ml-2">Your Gender</label>
+                                            <select
+                                                value={userGender}
+                                                onChange={(e) => setUserGender(e.target.value)}
+                                                className="w-full bg-background/50 border border-white/10 rounded-2xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                            >
+                                                <option>Male</option>
+                                                <option>Female</option>
+                                                <option>Other</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase tracking-widest opacity-50 block text-left ml-2">Match With</label>
+                                            <select
+                                                value={matchPreference}
+                                                onChange={(e) => setMatchPreference(e.target.value)}
+                                                className="w-full bg-background/50 border border-white/10 rounded-2xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                            >
+                                                <option>Male</option>
+                                                <option>Female</option>
+                                                <option>Any</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={startMatchmaking}
+                                        className="w-full group relative px-8 py-5 bg-primary text-primary-foreground rounded-2xl font-black text-xl flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-primary/30 overflow-hidden"
+                                    >
+                                        <span className="relative z-10 uppercase tracking-tighter">Enter Lobby</span>
+                                        <ArrowRight size={24} className="relative z-10 group-hover:translate-x-1 transition-transform" />
+                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
+                                    </button>
+                                </div>
                                 <div className="flex gap-8 text-xs font-bold text-muted-foreground mt-8"><div className="flex items-center gap-2"><Users size={16} className="text-primary" />INSTANT MATCH</div><div className="flex items-center gap-2"><Sparkles size={16} className="text-primary" />CHAT REWARD</div></div>
                             </motion.div>
                         )}
@@ -265,7 +361,7 @@ export default function PuzzlePage() {
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-4">
                                         <div className="px-4 py-2 bg-primary/10 rounded-xl border border-primary/20 flex items-center gap-2"><div className="w-2 h-2 bg-primary rounded-full animate-ping" /><span className="text-sm font-black text-primary uppercase">Live Syncing</span></div>
-                                        <div className="flex items-center gap-2 text-sm font-bold opacity-60"><Users size={16} />Active Partner: <span className="text-primary">Anita</span></div>
+                                        <div className="flex items-center gap-2 text-sm font-bold opacity-60"><Users size={16} />Active Partner: <span className="text-primary">{partnerName}</span></div>
                                     </div>
                                     {gameState === 'COMPLETED' && (<motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="px-6 py-2 bg-green-500/10 text-green-500 rounded-xl border border-green-500/20 font-black flex items-center gap-2"><Trophy size={18} />PUZZLE SOLVED!</motion.div>)}
                                 </div>
@@ -277,7 +373,7 @@ export default function PuzzlePage() {
 
                 {/* Right Side: Chat */}
                 <aside className="space-y-6 flex flex-col h-full lg:sticky lg:top-8">
-                    <InstantChat isUnlocked={isComplete} roomId={roomId} playerId={localPlayerId} messages={messages} onSendMessage={sendMessage} />
+                    <InstantChat isUnlocked={isComplete} roomId={roomId} playerId={localPlayerId} messages={messages} onSendMessage={sendMessage} partnerName={partnerName} />
                     <div className="bg-card border border-border rounded-3xl p-6 space-y-4">
                         <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Recent Global Solves</h4>
                         <div className="space-y-3">

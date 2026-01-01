@@ -18,13 +18,15 @@ export default function InstantChat({
     roomId = "demo",
     playerId = "player-default",
     messages,
-    onSendMessage
+    onSendMessage,
+    partnerName = "Partner"
 }: {
     isUnlocked: boolean,
     roomId?: string,
     playerId?: string,
     messages: Message[],
-    onSendMessage: (text: string) => void
+    onSendMessage: (text: string) => void,
+    partnerName?: string
 }) {
     const [input, setInput] = useState('')
     const scrollRef = useRef<HTMLDivElement>(null)
@@ -48,7 +50,7 @@ export default function InstantChat({
                 <div className="flex items-center gap-2">
                     <UserCircle2 className="text-primary" size={20} />
                     <div>
-                        <h4 className="text-sm font-bold">Partner Chat</h4>
+                        <h4 className="text-sm font-bold">{partnerName}</h4>
                         <p className="text-[10px] text-muted-foreground">Teamwork rewarded!</p>
                     </div>
                 </div>
