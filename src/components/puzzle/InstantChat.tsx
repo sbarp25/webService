@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Send, Hash, UserCircle2 } from 'lucide-react'
-import { pusherClient } from '@/lib/pusher'
 
 interface Message {
     id: string
