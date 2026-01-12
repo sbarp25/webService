@@ -214,11 +214,11 @@ export default function PuzzleBoard({
                             zIndex: piece.isLocked ? 0 : (piece.container === 'tray' ? 40 : 50)
                         }}
                         transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                        className="absolute cursor-grab active:cursor-grabbing rounded-lg overflow-hidden border border-white/10"
+                        className="absolute cursor-grab active:cursor-grabbing rounded-lg overflow-hidden border border-white/10 select-none touch-none"
                         style={{
                             // Size Logic:
                             // Board Piece: 25% of Board Width, 33% of Board Height
-                            // Tray Piece: ? Scale it down? Or keep Board Size?
+                            // Tray Piece: Scale it down? Or keep Board Size?
                             // Let's force Board Dimensions even in Tray for consistency
                             width: boardRect.width / GRID_SIZE.cols,
                             height: boardRect.height / GRID_SIZE.rows,
@@ -227,7 +227,10 @@ export default function PuzzleBoard({
                             backgroundImage: `url(${imageUrl})`,
                             backgroundSize: `${boardRect.width}px ${boardRect.height}px`, // Map to current board size
                             backgroundPosition: `-${(piece.id % GRID_SIZE.cols) * (boardRect.width / GRID_SIZE.cols)}px -${Math.floor(piece.id / GRID_SIZE.cols) * (boardRect.height / GRID_SIZE.rows)}px`,
+                            userSelect: 'none',
+                            WebkitUserSelect: 'none',
                         }}
+                        onMouseDown={(e) => e.preventDefault()} // Prevent browser drag
                     >
                         {piece.isLocked && (
                             <motion.div

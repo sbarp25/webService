@@ -37,6 +37,8 @@ export default function PuzzlePage() {
     const [onlineCount, setOnlineCount] = useState(1243) // Mock count since we lost Pusher presence
     const [messages, setMessages] = useState<any[]>([])
     const [pieces, setPieces] = useState<Piece[]>([])
+    const [currentImage, setCurrentImage] = useState("https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&q=80")
+    const [chatUnlocked, setChatUnlocked] = useState(false)
 
     // User Profile for Matchmaking
     const [userName, setUserName] = useState('')
@@ -183,6 +185,12 @@ export default function PuzzlePage() {
             if (data.pieces && pieces.length === 0) {
                 setPieces(data.pieces)
             }
+        } else if (data.type === 'NEW_GAME') {
+            console.log('--- NEW GAME RECEIVED ---')
+            setCurrentImage(data.image)
+            setPieces(data.pieces)
+            setIsComplete(false)
+            setGameState('PLAYING')
         }
     }
 
@@ -351,8 +359,58 @@ export default function PuzzlePage() {
         }
     }, [pieces, isComplete])
 
+    // Resize Image Utility
+    const resizeImage = (file: File): Promise<string> => {
+        return new Promise((resolve) => {
+            const reader = new FileReader()
+            reader.onload = (e) => {
+                const img = new Image()
+                img.onload = () => {
+                    const canvas = document.createElement('canvas')
+                    const MAX_WIDTH = 800
+                    const scale = MAX_WIDTH / img.width
+                    canvas.width = MAX_WIDTH
+                    canvas.height = img.height * scale
+                    const ctx = canvas.getContext('2d')
+                    ctx?.drawImage(img, 0, 0, canvas.width, canvas.height)
+                    resolve(canvas.toDataURL('image/jpeg', 0.8))
+                }
+                img.src = e.target?.result as string
+            }
+            reader.readAsDataURL(file)
+        })
+    }
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        const resizedImage = await resizeImage(file)
+        startNewGame(resizedImage)
+    }
+
+    const startNewGame = (imagedata: string) => {
+        // Reset Local State
+        setCurrentImage(imagedata)
+        const newPieces = generateBoard()
+        setPieces(newPieces)
+        setIsComplete(false)
+        setGameState('PLAYING')
+
+        // Broadcast NEW_GAME
+        if (connRef.current) {
+            connRef.current.send({
+                type: 'NEW_GAME',
+                image: imagedata,
+                pieces: newPieces,
+                senderId: localPlayerIdRef.current
+            })
+        }
+    }
+
     const handleSolve = (shouldBroadcast: boolean) => {
         setIsComplete(true)
+        setChatUnlocked(true)
         setGameState('COMPLETED')
         if (shouldBroadcast) broadcastComplete()
 
@@ -471,11 +529,30 @@ export default function PuzzlePage() {
                         {(gameState === 'PLAYING' || gameState === 'COMPLETED') && (
                             <motion.div key="game" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
                                 <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className="px-4 py-2 bg-primary/10 rounded-xl border border-primary/20 flex items-center gap-2"><div className="w-2 h-2 bg-primary rounded-full animate-ping" /><span className="text-sm font-black text-primary uppercase">Peer2Peer Sync</span></div>
-                                        <div className="flex items-center gap-2 text-sm font-bold opacity-60"><Users size={16} />Active Partner: <span className="text-primary">{partnerName}</span></div>
+                                    <div className="flex items-center gap-3">
+                                        <div className="px-3 py-1 bg-primary/10 rounded-lg border border-primary/20 flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-primary rounded-full animate-ping" /><span className="text-[10px] font-black text-primary uppercase">P2P Sync</span></div>
+                                        <div className="flex items-center gap-1.5 text-xs font-bold opacity-60"><Users size={12} />Partner: <span className="text-primary">{partnerName}</span></div>
                                     </div>
-                                    {gameState === 'COMPLETED' && (<motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="px-6 py-2 bg-green-500/10 text-green-500 rounded-xl border border-green-500/20 font-black flex items-center gap-2"><Trophy size={18} />PUZZLE SOLVED!</motion.div>)}
+                                    {gameState === 'COMPLETED' && (
+                                        <div className="flex items-center gap-2">
+                                            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="px-3 py-1 bg-green-500/10 text-green-500 rounded-lg border border-green-500/20 text-[10px] font-black flex items-center gap-1.5">
+                                                <Trophy size={12} />SOLVED!
+                                            </motion.div>
+
+                                            <div className="relative group">
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={handleImageUpload}
+                                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                                                />
+                                                <button className="px-3 py-1 bg-primary text-primary-foreground rounded-lg text-[10px] font-bold hover:scale-105 active:scale-95 transition-all shadow-md shadow-primary/20 flex items-center gap-1.5">
+                                                    <Sparkles size={12} />
+                                                    Play Again
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                                 {/* PUZZLE BOARD */}
                                 <div className="w-full">
@@ -486,6 +563,7 @@ export default function PuzzlePage() {
                                         roomId={roomId}
                                         localPlayerId={localPlayerId}
                                         isComplete={isComplete}
+                                        imageUrl={currentImage}
                                     />
                                 </div>
                             </motion.div>
@@ -508,7 +586,7 @@ export default function PuzzlePage() {
                     )}
 
                     <InstantChat
-                        isUnlocked={isComplete}
+                        isUnlocked={chatUnlocked || isComplete}
                         roomId={roomId}
                         playerId={localPlayerId}
                         messages={messages}
