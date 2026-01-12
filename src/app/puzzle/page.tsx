@@ -15,6 +15,8 @@ const GRID_SIZE = { cols: 4, rows: 3 }
 const PIECE_WIDTH = 100
 const PIECE_HEIGHT = 100
 
+import VideoChat from '@/components/puzzle/VideoChat'
+
 export default function PuzzlePage() {
     const [gameState, setGameState] = useState<GameState>('LOBBY')
     const [isComplete, setIsComplete] = useState(false)
@@ -24,6 +26,12 @@ export default function PuzzlePage() {
     const [peerId, setPeerId] = useState<string>('')
     const peerRef = useRef<Peer | null>(null)
     const connRef = useRef<DataConnection | null>(null)
+
+    // Video Chat State
+    const [localStream, setLocalStream] = useState<MediaStream | null>(null)
+    const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null)
+    const [isMuted, setIsMuted] = useState(false)
+    const [isVideoOff, setIsVideoOff] = useState(false)
 
     // Game State
     const [onlineCount, setOnlineCount] = useState(1243) // Mock count since we lost Pusher presence
@@ -54,9 +62,28 @@ export default function PuzzlePage() {
             setPeerId(id)
         })
 
+        // Data Connection (Chat/Game)
         peer.on('connection', (conn) => {
             console.log('--- PeerJS: Incoming connection from', conn.peer)
             handleConnection(conn)
+        })
+
+        // Media Connection (Video)
+        peer.on('call', async (call) => {
+            console.log('--- PeerJS: Incoming Call ---')
+            // Answer the call with our local stream (if ready)
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                setLocalStream(stream)
+                call.answer(stream) // Answer the call with an A/V stream.
+
+                call.on('stream', (remoteStream) => {
+                    console.log('--- PeerJS: Received Remote Stream ---')
+                    setRemoteStream(remoteStream)
+                })
+            } catch (err) {
+                console.error('Failed to get local stream to answer call', err)
+            }
         })
 
         peer.on('error', (err) => {
@@ -66,9 +93,26 @@ export default function PuzzlePage() {
         peerRef.current = peer
 
         return () => {
+            // Cleanup streams
+            if (localStream) localStream.getTracks().forEach(track => track.stop())
             peer.destroy()
         }
     }, [])
+
+    // Video Chat Controls
+    const toggleMute = () => {
+        if (localStream) {
+            localStream.getAudioTracks().forEach(track => track.enabled = !isMuted)
+            setIsMuted(!isMuted)
+        }
+    }
+
+    const toggleVideo = () => {
+        if (localStream) {
+            localStream.getVideoTracks().forEach(track => track.enabled = !isVideoOff)
+            setIsVideoOff(!isVideoOff)
+        }
+    }
 
     // 2. Handle Incoming/Outgoing Connection
     const handleConnection = (conn: DataConnection) => {
@@ -244,9 +288,29 @@ export default function PuzzlePage() {
                 name: userNameRef.current,
                 senderId: localPlayerIdRef.current
             })
+
+            // 2. Initiate Video Call - REMOVED (User wants manual trigger after solve)
+            // startVideoCall(partnerPeerId)
         })
 
         handleConnection(conn)
+    }
+
+    const startVideoCall = async (partnerId: string) => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+            setLocalStream(stream)
+
+            if (peerRef.current) {
+                const call = peerRef.current.call(partnerId, stream)
+                call.on('stream', (remoteStream) => {
+                    setRemoteStream(remoteStream)
+                })
+            }
+        } catch (err) {
+            console.error('Error starting video call:', err)
+            alert('Could not start video chat. Please allow camera access.')
+        }
     }
 
 
@@ -328,9 +392,9 @@ export default function PuzzlePage() {
             </div>
 
             {/* Main Content Area */}
-            <main className="w-full max-w-6xl grid lg:grid-cols-[1fr_350px] gap-8 items-start">
+            <main className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-8 items-start">
                 {/* Left Side: Game/Lobby */}
-                <div className="space-y-8">
+                <div className="space-y-8 order-2 lg:order-1">
                     <AnimatePresence mode="wait">
                         {gameState === 'LOBBY' && (
                             <motion.div
@@ -338,7 +402,7 @@ export default function PuzzlePage() {
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 exit={{ opacity: 0, scale: 1.05 }}
-                                className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-primary/20 via-primary/5 to-transparent border border-primary/20 p-12 flex flex-col items-center text-center space-y-8 min-h-[500px] justify-center"
+                                className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-primary/20 via-primary/5 to-transparent border border-primary/20 p-6 md:p-12 flex flex-col items-center text-center space-y-8 min-h-[500px] justify-center"
                             >
                                 <div className="absolute top-0 right-0 p-12 opacity-10 blur-2xl"><div className="w-64 h-64 bg-primary rounded-full" /></div>
                                 <div className="w-24 h-24 bg-primary/20 rounded-3xl flex items-center justify-center rotate-6 shadow-2xl shadow-primary/20 relative z-10"><Zap size={48} className="text-primary" /></div>
@@ -419,9 +483,34 @@ export default function PuzzlePage() {
                     </AnimatePresence>
                 </div>
 
-                {/* Right Side: Chat */}
-                <aside className="space-y-6 flex flex-col h-full lg:sticky lg:top-8">
-                    <InstantChat isUnlocked={isComplete} roomId={roomId} playerId={localPlayerId} messages={messages} onSendMessage={sendMessage} partnerName={partnerName} />
+                {/* Right Side: Chat & Video */}
+                <aside className="space-y-6 flex flex-col h-full w-full lg:sticky lg:top-8 order-1 lg:order-2">
+                    {/* VIDEO CHAT */}
+                    {(localStream || remoteStream) && (
+                        <VideoChat
+                            localStream={localStream}
+                            remoteStream={remoteStream}
+                            isMuted={isMuted}
+                            isVideoOff={isVideoOff}
+                            onToggleMute={toggleMute}
+                            onToggleVideo={toggleVideo}
+                        />
+                    )}
+
+                    <InstantChat
+                        isUnlocked={isComplete}
+                        roomId={roomId}
+                        playerId={localPlayerId}
+                        messages={messages}
+                        onSendMessage={sendMessage}
+                        partnerName={partnerName}
+                        onStartVideoCall={() => {
+                            if (connRef.current) {
+                                startVideoCall(connRef.current.peer)
+                            }
+                        }}
+                        isVideoCallActive={!!localStream}
+                    />
                     <div className="bg-card border border-border rounded-3xl p-6 space-y-4">
                         <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Recent Global Solves</h4>
                         <div className="space-y-3">

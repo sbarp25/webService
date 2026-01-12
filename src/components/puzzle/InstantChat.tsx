@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Send, Hash, UserCircle2 } from 'lucide-react'
+import { Send, Hash, UserCircle2, Video } from 'lucide-react'
 
 interface Message {
     id: string
@@ -18,14 +18,18 @@ export default function InstantChat({
     playerId = "player-default",
     messages,
     onSendMessage,
-    partnerName = "Partner"
+    partnerName = "Partner",
+    onStartVideoCall,
+    isVideoCallActive
 }: {
     isUnlocked: boolean,
     roomId?: string,
     playerId?: string,
     messages: Message[],
     onSendMessage: (text: string) => void,
-    partnerName?: string
+    partnerName?: string,
+    onStartVideoCall?: () => void,
+    isVideoCallActive?: boolean
 }) {
     const [input, setInput] = useState('')
     const scrollRef = useRef<HTMLDivElement>(null)
@@ -43,7 +47,7 @@ export default function InstantChat({
     }, [messages])
 
     return (
-        <div className={`flex flex-col h-[400px] w-full max-w-md bg-card border border-border rounded-3xl overflow-hidden shadow-2xl transition-all duration-700 ${!isUnlocked ? 'blur-md pointer-events-none opacity-50 grayscale' : 'opacity-100'}`}>
+        <div className={`flex flex-col h-[400px] w-full bg-card border border-border rounded-3xl overflow-hidden shadow-2xl transition-all duration-700 ${!isUnlocked ? 'blur-md pointer-events-none opacity-50 grayscale' : 'opacity-100'}`}>
             {/* Chat Header */}
             <div className="px-6 py-4 bg-primary/5 border-b border-border flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -53,9 +57,26 @@ export default function InstantChat({
                         <p className="text-[10px] text-muted-foreground">Teamwork rewarded!</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-1">
-                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                    <span className="text-[10px] uppercase tracking-wider font-bold opacity-50">Live</span>
+                <div className="flex items-center gap-3">
+                    {/* Video Call Button */}
+                    <button
+                        onClick={onStartVideoCall}
+                        disabled={!isUnlocked || isVideoCallActive}
+                        className={`p-2 rounded-full transition-all ${isVideoCallActive
+                            ? 'bg-green-500/20 text-green-500 cursor-default'
+                            : isUnlocked
+                                ? 'bg-primary/10 text-primary hover:bg-primary/20 hover:scale-110'
+                                : 'bg-muted text-muted-foreground opacity-50 cursor-not-allowed'
+                            }`}
+                        title={!isUnlocked ? "Solve puzzle to unlock video" : "Start Video Call"}
+                    >
+                        <Video size={18} />
+                    </button>
+
+                    <div className="flex items-center gap-1">
+                        <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                        <span className="text-[10px] uppercase tracking-wider font-bold opacity-50">Live</span>
+                    </div>
                 </div>
             </div>
 
