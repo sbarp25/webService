@@ -165,7 +165,7 @@ export default function PuzzlePage() {
         } else if (data.type === 'move') {
             setPieces(prev => prev.map(p =>
                 p.id === data.pieceId
-                    ? { ...p, currentPos: data.currentPos, lastMovedBy: data.senderId, isLocked: data.isLocked || p.isLocked }
+                    ? { ...p, position: data.position, container: data.container, lastMovedBy: data.senderId, isLocked: data.isLocked || p.isLocked }
                     : p
             ))
         } else if (data.type === 'chat') {
@@ -196,19 +196,20 @@ export default function PuzzlePage() {
         for (let row = 0; row < GRID_SIZE.rows; row++) {
             for (let col = 0; col < GRID_SIZE.cols; col++) {
                 const id = row * GRID_SIZE.cols + col
-                // Use Percentages (0-100) for position
-                // Width unit = 100 / 4 = 25%
-                // Height unit = 100 / 3 = 33.33%
+
+                // Targets are 0-100% of the Board
                 const targetX = (col / GRID_SIZE.cols) * 100
                 const targetY = (row / GRID_SIZE.rows) * 100
 
                 initialPieces.push({
                     id,
                     targetPos: { x: targetX, y: targetY },
-                    currentPos: {
-                        x: Math.random() * 60 + 20, // Random positions approx 20-80%
-                        y: Math.random() * 60 + 20
+                    // Init in Tray: Random 0-100% of Tray area
+                    position: {
+                        x: Math.random() * 80 + 10,
+                        y: Math.random() * 80 + 10
                     },
+                    container: 'tray',
                     isLocked: false
                 })
             }
@@ -321,9 +322,9 @@ export default function PuzzlePage() {
 
 
     // 5. Game Actions
-    const broadcastMove = (pieceId: number, currentPos: { x: number, y: number }, isLocked: boolean) => {
+    const broadcastMove = (pieceId: number, position: { x: number, y: number }, container: 'board' | 'tray', isLocked: boolean) => {
         if (connRef.current) {
-            connRef.current.send({ type: 'move', pieceId, currentPos, senderId: localPlayerId, isLocked })
+            connRef.current.send({ type: 'move', pieceId, position, container, senderId: localPlayerId, isLocked })
         }
     }
 
@@ -384,15 +385,8 @@ export default function PuzzlePage() {
                 </Link>
 
                 <div className="flex gap-4">
-                    <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-card rounded-2xl border border-border">
-                        <div className="flex -space-x-2">
-                            {[1, 2].map(i => (
-                                <div key={i} className="w-8 h-8 rounded-full border-2 border-background bg-secondary flex items-center justify-center overflow-hidden">
-                                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i === 1 ? 'Felix' : 'Anita'}`} alt="avatar" />
-                                </div>
-                            ))}
-                        </div>
-                        <span className="text-xs font-bold text-muted-foreground">{onlineCount} Online Now</span>
+                    <div className="flex gap-4">
+                        {/* Header Actions if any */}
                     </div>
                 </div>
             </div>
@@ -483,7 +477,17 @@ export default function PuzzlePage() {
                                     </div>
                                     {gameState === 'COMPLETED' && (<motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="px-6 py-2 bg-green-500/10 text-green-500 rounded-xl border border-green-500/20 font-black flex items-center gap-2"><Trophy size={18} />PUZZLE SOLVED!</motion.div>)}
                                 </div>
-                                <PuzzleBoard pieces={pieces} setPieces={setPieces} onBroadcastMove={broadcastMove} roomId={roomId} localPlayerId={localPlayerId} />
+                                {/* PUZZLE BOARD */}
+                                <div className="w-full">
+                                    <PuzzleBoard
+                                        pieces={pieces}
+                                        setPieces={setPieces}
+                                        onBroadcastMove={broadcastMove}
+                                        roomId={roomId}
+                                        localPlayerId={localPlayerId}
+                                        isComplete={isComplete}
+                                    />
+                                </div>
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -517,23 +521,8 @@ export default function PuzzlePage() {
                         }}
                         isVideoCallActive={!!localStream}
                     />
-                    <div className="bg-card border border-border rounded-3xl p-6 space-y-4">
-                        <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Recent Global Solves</h4>
-                        <div className="space-y-3">
-                            {[{ name: 'Sarah & Tom', time: '1m 24s', pts: '+250' }, { name: 'Mike & Leo', time: '2m 10s', pts: '+200' }, { name: 'Elena & Jo', time: '48s', pts: '+500' },].map((solve, i) => (
-                                <div key={i} className="flex items-center justify-between group cursor-default">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-[10px] font-black group-hover:bg-primary/20 transition-colors">{solve.pts}</div>
-                                        <span className="text-sm font-bold">{solve.name}</span>
-                                    </div>
-                                    <span className="text-[10px] font-black opacity-40">{solve.time}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
                 </aside>
             </main>
         </div>
     )
 }
-
