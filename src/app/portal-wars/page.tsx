@@ -62,6 +62,7 @@ export default function DuelPage() {
     const [userName, setUserName] = useState('')
     const [peerId, setPeerId] = useState<string>('')
     const [lastMissileFired, setLastMissileFired] = useState(0)
+    const [isMobile, setIsMobile] = useState(false)
 
     // Refs
     const peerRef = useRef<Peer | null>(null)
@@ -108,6 +109,14 @@ export default function DuelPage() {
 
         peerRef.current = peer
         return () => peer.destroy()
+    }, [])
+
+    // Mobile Detection
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768)
+        checkMobile()
+        window.addEventListener('resize', checkMobile)
+        return () => window.removeEventListener('resize', checkMobile)
     }, [])
 
     const handleConnection = (conn: DataConnection) => {
@@ -793,9 +802,9 @@ export default function DuelPage() {
     }
 
     const drawRadar = (ctx: CanvasRenderingContext2D, state: any) => {
-        const radarSize = 150
+        const radarSize = isMobile ? 110 : 150
         const padding = 20
-        const radarX = padding
+        const radarX = isMobile ? (canvasRef.current?.width || 800) - radarSize - padding : padding
         const radarY = padding + 60 // Top area, below header
 
         // Background
