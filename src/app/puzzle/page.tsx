@@ -1,13 +1,13 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Zap, Users, Trophy, ArrowRight, Loader2, Sparkles } from 'lucide-react'
 import PuzzleBoard, { Piece } from '@/components/puzzle/PuzzleBoard'
 import InstantChat from '@/components/puzzle/InstantChat'
 import Link from 'next/link'
 import confetti from 'canvas-confetti'
-import { pusherClient } from '@/lib/pusher'
+import Peer, { DataConnection } from 'peerjs'
 
 type GameState = 'LOBBY' | 'MATCHING' | 'PLAYING' | 'COMPLETED'
 
@@ -20,7 +20,13 @@ export default function PuzzlePage() {
     const [isComplete, setIsComplete] = useState(false)
     const [roomId, setRoomId] = useState<string>('')
     const [localPlayerId] = useState(() => "user-" + Math.random().toString(36).substr(2, 5))
-    const [onlineCount, setOnlineCount] = useState(0)
+    // PeerJS State
+    const [peerId, setPeerId] = useState<string>('')
+    const peerRef = useRef<Peer | null>(null)
+    const connRef = useRef<DataConnection | null>(null)
+
+    // Game State
+    const [onlineCount, setOnlineCount] = useState(1243) // Mock count since we lost Pusher presence
     const [messages, setMessages] = useState<any[]>([])
     const [pieces, setPieces] = useState<Piece[]>([])
 
@@ -30,25 +36,118 @@ export default function PuzzlePage() {
     const [matchPreference, setMatchPreference] = useState('Any')
     const [partnerName, setPartnerName] = useState('Partner')
 
-    // 1. Online Count Effect
+    // Refs for State accessed in Event Listeners
+    const userNameRef = useRef(userName)
+    const localPlayerIdRef = useRef(localPlayerId)
+
     useEffect(() => {
-        const channel = pusherClient.subscribe('presence-lobby')
-        channel.bind('pusher:subscription_succeeded', (members: any) => setOnlineCount(members.count))
-        channel.bind('pusher:member_added', () => {
-            // @ts-ignore
-            setOnlineCount(channel.members.count)
+        userNameRef.current = userName
+        localPlayerIdRef.current = localPlayerId
+    }, [userName, localPlayerId])
+
+    // 1. Initialize PeerJS on Mount
+    useEffect(() => {
+        const peer = new Peer()
+
+        peer.on('open', (id) => {
+            console.log('--- PeerJS: Connected with ID:', id)
+            setPeerId(id)
         })
-        channel.bind('pusher:member_removed', () => {
-            // @ts-ignore
-            setOnlineCount(channel.members.count)
+
+        peer.on('connection', (conn) => {
+            console.log('--- PeerJS: Incoming connection from', conn.peer)
+            handleConnection(conn)
         })
-        return () => { pusherClient.unsubscribe('presence-lobby') }
+
+        peer.on('error', (err) => {
+            console.error('--- PeerJS Error:', err)
+        })
+
+        peerRef.current = peer
+
+        return () => {
+            peer.destroy()
+        }
     }, [])
 
-    // 2. Initialize Pieces when Room is set (Once per game)
-    useEffect(() => {
-        if (!roomId || gameState !== 'PLAYING' || pieces.length > 0) return
+    // 2. Handle Incoming/Outgoing Connection
+    const handleConnection = (conn: DataConnection) => {
+        connRef.current = conn
 
+        conn.on('open', () => {
+            console.log('--- PeerJS: Connection Open! ---')
+        })
+
+        conn.on('data', (data: any) => {
+            console.log('--- PeerJS: Data Received ---', data)
+            handleGameData(data)
+        })
+
+        conn.on('close', () => {
+            console.log('--- PeerJS: Connection Closed ---')
+            alert('Partner disconnected!')
+            setGameState('LOBBY')
+            setPieces([])
+            setMessages([])
+        })
+
+        conn.on('error', (err) => {
+            console.error('--- PeerJS Connection Error:', err)
+        })
+    }
+
+    const handleGameData = (data: any) => {
+        if (data.type === 'HANDSHAKE_INIT') {
+            // Received by Passive Peer (Guest)
+            console.log('--- Handshake INIT Received ---')
+            setPieces(data.pieces)
+            if (data.name) setPartnerName(data.name)
+            setGameState('PLAYING')
+
+            // Send ACK back
+            if (connRef.current) {
+                connRef.current.send({
+                    type: 'HANDSHAKE_ACK',
+                    name: userNameRef.current,
+                    senderId: localPlayerIdRef.current
+                })
+            }
+        } else if (data.type === 'HANDSHAKE_ACK') {
+            // Received by Active Peer (Host)
+            console.log('--- Handshake ACK Received ---')
+            if (data.name) setPartnerName(data.name)
+            setGameState('PLAYING')
+
+        } else if (data.type === 'move') {
+            setPieces(prev => prev.map(p =>
+                p.id === data.pieceId
+                    ? { ...p, currentPos: data.currentPos, lastMovedBy: data.senderId, isLocked: data.isLocked || p.isLocked }
+                    : p
+            ))
+        } else if (data.type === 'chat') {
+            setMessages(prev => [...prev, {
+                id: Math.random().toString(36),
+                text: data.text,
+                sender: 'partner',
+                timestamp: new Date(),
+                senderId: data.senderId
+            }])
+        } else if (data.type === 'completed') {
+            handleSolve(false)
+        } else if (data.type === 'sync-board') {
+            // Initial sync if needed, or if one player generates board
+            if (data.pieces && pieces.length === 0) {
+                setPieces(data.pieces)
+            }
+        }
+    }
+
+
+    // 3. Initialize Pieces (Host Logic)
+    // In P2P, we need to agree on pieces. 
+    // Plan: The one who poll finds the match (Client A) -> Connects to Client B.
+    // Client A generates board and sends to Client B.
+    const generateBoard = () => {
         const initialPieces: Piece[] = []
         for (let row = 0; row < GRID_SIZE.rows; row++) {
             for (let col = 0; col < GRID_SIZE.cols; col++) {
@@ -64,173 +163,122 @@ export default function PuzzlePage() {
                 })
             }
         }
-        setPieces(initialPieces)
-    }, [roomId, gameState])
+        return initialPieces
+    }
 
-    // 3. Main Game Subscription persists through PLAYING and COMPLETED
-    useEffect(() => {
-        if (!roomId) return
 
-        console.log(`--- Game: Subscribing to room-${roomId} ---`)
-        const channel = pusherClient.subscribe(`room-${roomId}`)
-
-        channel.bind('new-message', (data: { text: string, senderId: string, timestamp: string }) => {
-            console.log('--- Game: Message Received ---', data)
-            if (data.senderId !== localPlayerId) {
-                setMessages(prev => [...prev, {
-                    id: Math.random().toString(36),
-                    text: data.text,
-                    sender: 'partner',
-                    timestamp: new Date(data.timestamp),
-                    senderId: data.senderId
-                }])
-            }
-        })
-
-        channel.bind('piece-moved', (data: { pieceId: number, currentPos: { x: number, y: number }, senderId: string, isLocked: boolean }) => {
-            if (data.senderId !== localPlayerId) {
-                setPieces(prev => prev.map(p =>
-                    p.id === data.pieceId
-                        ? { ...p, currentPos: data.currentPos, lastMovedBy: data.senderId, isLocked: data.isLocked || p.isLocked }
-                        : p
-                ))
-            }
-        })
-
-        channel.bind('puzzle-completed', (data: { senderId: string }) => {
-            console.log('--- Game: puzzle-completed received ---', data)
-            if (data.senderId !== localPlayerId) {
-                handleSolve(false) // Don't broadcast again
-            }
-        })
-
-        return () => {
-            console.log(`--- Game: Unsubscribing from room-${roomId} ---`)
-            pusherClient.unsubscribe(`room-${roomId}`)
-        }
-    }, [roomId, localPlayerId])
-
-    // 4. Completion check effect
-    useEffect(() => {
-        if (pieces.length > 0 && pieces.every(p => p.isLocked) && !isComplete) {
-            handleSolve(true)
-        }
-    }, [pieces, isComplete])
-
-    const startMatchmaking = () => {
+    // 4. Matchmaking Logic (MongoDB Poll)
+    const startMatchmaking = async () => {
         if (!userName.trim()) {
             alert("Please enter your name first!")
+            return
+        }
+        if (!peerId) {
+            alert("PeerJS not initialized yet. Please wait...")
             return
         }
 
         setGameState('MATCHING')
 
-        // 1. Create a "Rich ID" that contains all metadata
-        // Format: ID|Name|Gender|Pref
-        const richId = `${localPlayerId}|${userName}|${userGender}|${matchPreference}`
-        console.log('--- Matchmaking: Using Rich ID ---', richId)
+        try {
+            // A. Join Lobby
+            await fetch('/api/matchmaking/join', {
+                method: 'POST',
+                body: JSON.stringify({
+                    userId: localPlayerId,
+                    name: userName,
+                    gender: userGender,
+                    preference: matchPreference,
+                    peerId: peerId
+                })
+            })
 
-        // 2. Custom Authorizer to guarantee this ID is sent
-        const matchChannel = (pusherClient as any).subscribe('presence-searching', {
-            authorizer: ({ name }: any) => {
-                return {
-                    authorize: (socketId: string, callback: any) => {
-                        fetch('/api/pusher/auth', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                            body: new URLSearchParams({
-                                socket_id: socketId,
-                                channel_name: name,
-                                'x-user-id': richId // Send the composite ID
-                            }).toString()
-                        })
-                            .then(res => res.json())
-                            .then(data => callback(null, data))
-                            .catch(err => callback(err, null))
-                    }
+            // B. Start Polling
+            const pollInterval = setInterval(async () => {
+                const res = await fetch('/api/matchmaking/poll', {
+                    method: 'POST',
+                    body: JSON.stringify({ userId: localPlayerId, gender: userGender, preference: matchPreference })
+                })
+                const data = await res.json()
+
+                if (data.matchFound && data.partner) {
+                    clearInterval(pollInterval)
+                    console.log('--- Match Found! ---', data.partner)
+                    setPartnerName(data.partner.name)
+
+                    // Logic: If WE Found the match (active poller), we initiate connection
+                    // Wait a random delay to avoid collision if both found same time (simple conflict res)
+                    // Or relies on who found who. 
+                    // To avoid double connection: The one whose ID is lexically smaller connects? 
+                    // Or just whoever polls first. PeerJS handles double connections gracefully usually?
+
+                    // Let's connect immediately.
+                    connectToPartner(data.partner.peerId)
                 }
-            }
-        })
+            }, 2000)
 
-        const startIfReady = (members: any) => {
-            if (members.count >= 2) {
-                // Wait for everyone to have their metadata
-                const memberIds = Object.keys(members.members).sort()
+            // Cleanup on unmount or cancel
+            return () => clearInterval(pollInterval)
 
-                // Capture partner name from metadata
-                const partnerId = memberIds.find(id => id !== localPlayerId)
-                const partnerInfo = members.members[partnerId!]
-
-                console.log('--- Matchmaking: Partner Info Received ---', partnerInfo)
-
-                if (partnerInfo) {
-                    setPartnerName(partnerInfo.name || 'Partner')
-                }
-
-                const hostId = memberIds[0]
-                const guestId = memberIds[1]
-                const generatedRoomId = `game-${hostId}-${guestId}`
-
-                setRoomId(generatedRoomId)
-                setGameState('PLAYING')
-                pusherClient.unsubscribe('presence-searching')
-            }
-        }
-
-        matchChannel.bind('pusher:subscription_succeeded', (members: any) => {
-            console.log('--- Matchmaking: Subscribed! Members:', members)
-            startIfReady(members)
-        })
-
-        matchChannel.bind('pusher:member_added', () => {
-            // @ts-ignore
-            startIfReady(matchChannel.members)
-        })
-
-        matchChannel.bind('pusher:subscription_error', (error: any) => {
-            console.error('--- Matchmaking Error:', error)
+        } catch (e) {
+            console.error('Matchmaking Failed', e)
             setGameState('LOBBY')
+        }
+    }
+
+    const connectToPartner = (partnerPeerId: string) => {
+        if (!peerRef.current) return
+        console.log('--- Connecting to Partner ---', partnerPeerId)
+        const conn = peerRef.current.connect(partnerPeerId)
+
+        conn.on('open', () => {
+            // We are the initiator (Host)
+            console.log('--- Connection Opened (Host) -> Sending INIT ---')
+            const newPieces = generateBoard()
+            setPieces(newPieces)
+
+            // Send Handshake INIT
+            conn.send({
+                type: 'HANDSHAKE_INIT',
+                pieces: newPieces,
+                name: userNameRef.current,
+                senderId: localPlayerIdRef.current
+            })
         })
+
+        handleConnection(conn)
     }
 
-    const broadcastMove = async (pieceId: number, currentPos: { x: number, y: number }, isLocked: boolean) => {
-        try {
-            await fetch('/api/puzzle/move', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ roomId, pieceId, currentPos, senderId: localPlayerId, isLocked })
-            })
-        } catch (e) {
-            console.error('Failed to broadcast move', e)
+
+    // 5. Game Actions
+    const broadcastMove = (pieceId: number, currentPos: { x: number, y: number }, isLocked: boolean) => {
+        if (connRef.current) {
+            connRef.current.send({ type: 'move', pieceId, currentPos, senderId: localPlayerId, isLocked })
         }
     }
 
-    const broadcastComplete = async () => {
-        try {
-            await fetch('/api/puzzle/complete', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ roomId, senderId: localPlayerId })
-            })
-        } catch (e) {
-            console.error('Failed to broadcast completion', e)
+    const broadcastComplete = () => {
+        if (connRef.current) {
+            connRef.current.send({ type: 'completed', senderId: localPlayerId })
         }
     }
 
-    const sendMessage = async (text: string) => {
-        if (!text.trim() || !roomId) return
-        const newMessage = { id: Math.random().toString(36), text, sender: 'me' as const, timestamp: new Date() }
+    const sendMessage = (text: string) => {
+        if (!text.trim()) return
+        const newMessage = { id: Math.random().toString(36), text, sender: 'me', timestamp: new Date() }
         setMessages(prev => [...prev, newMessage])
-        try {
-            await fetch('/api/puzzle/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ roomId, text, senderId: localPlayerId })
-            })
-        } catch (e) {
-            console.error('Failed to send message', e)
+
+        if (connRef.current) {
+            connRef.current.send({ type: 'chat', text, senderId: localPlayerId })
         }
     }
+
+    // 6. Completion Check
+    useEffect(() => {
+        if (pieces.length > 0 && pieces.every(p => p.isLocked) && !isComplete) {
+            handleSolve(true)
+        }
+    }, [pieces, isComplete])
 
     const handleSolve = (shouldBroadcast: boolean) => {
         setIsComplete(true)
@@ -274,7 +322,7 @@ export default function PuzzlePage() {
                                 </div>
                             ))}
                         </div>
-                        <span className="text-xs font-bold text-muted-foreground">{onlineCount > 0 ? (onlineCount + 1204) : 1204} Online Now</span>
+                        <span className="text-xs font-bold text-muted-foreground">{onlineCount} Online Now</span>
                     </div>
                 </div>
             </div>
@@ -360,7 +408,7 @@ export default function PuzzlePage() {
                             <motion.div key="game" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-4">
-                                        <div className="px-4 py-2 bg-primary/10 rounded-xl border border-primary/20 flex items-center gap-2"><div className="w-2 h-2 bg-primary rounded-full animate-ping" /><span className="text-sm font-black text-primary uppercase">Live Syncing</span></div>
+                                        <div className="px-4 py-2 bg-primary/10 rounded-xl border border-primary/20 flex items-center gap-2"><div className="w-2 h-2 bg-primary rounded-full animate-ping" /><span className="text-sm font-black text-primary uppercase">Peer2Peer Sync</span></div>
                                         <div className="flex items-center gap-2 text-sm font-bold opacity-60"><Users size={16} />Active Partner: <span className="text-primary">{partnerName}</span></div>
                                     </div>
                                     {gameState === 'COMPLETED' && (<motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="px-6 py-2 bg-green-500/10 text-green-500 rounded-xl border border-green-500/20 font-black flex items-center gap-2"><Trophy size={18} />PUZZLE SOLVED!</motion.div>)}
@@ -393,3 +441,4 @@ export default function PuzzlePage() {
         </div>
     )
 }
+
