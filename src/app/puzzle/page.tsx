@@ -59,17 +59,7 @@ export default function PuzzlePage() {
 
     // 1. Initialize PeerJS on Mount
     useEffect(() => {
-        const peer = new Peer({
-            config: {
-                iceServers: [
-                    { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' },
-                    { urls: 'stun:stun2.l.google.com:19302' },
-                    { urls: 'stun:stun.services.mozilla.com' }
-                ],
-                iceCandidatePoolSize: 10,
-            }
-        })
+        const peer = new Peer()
 
         peer.on('open', (id) => {
             console.log('--- PeerJS: Connected with ID:', id)

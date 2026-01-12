@@ -101,17 +101,7 @@ export default function DuelPage() {
 
     // Init PeerJS
     useEffect(() => {
-        const peer = new Peer({
-            config: {
-                iceServers: [
-                    { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' },
-                    { urls: 'stun:stun2.l.google.com:19302' },
-                    { urls: 'stun:stun.services.mozilla.com' }
-                ],
-                iceCandidatePoolSize: 10,
-            }
-        })
+        const peer = new Peer()
 
         peer.on('open', (id) => {
             setPeerId(id)
