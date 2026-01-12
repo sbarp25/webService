@@ -92,8 +92,6 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   verification: {
     google: "your-google-verification-code",
-    // yandex: "your-yandex-verification-code",
-    // bing: "your-bing-verification-code",
   },
 };
 
@@ -110,12 +108,12 @@ export default function RootLayout({
         <Providers>
           {children}
         </Providers>
-        <Script
+        {/* <Script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6439540601394099"
           crossOrigin="anonymous"
           strategy="afterInteractive"
-        />
+        /> */}
       </body>
     </html>
   );

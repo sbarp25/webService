@@ -480,7 +480,8 @@ export default function DuelPage() {
             for (let j = state.missiles.length - 1; j >= 0; j--) {
                 const m = state.missiles[j]
                 const dist = Math.sqrt((b.x - m.x) ** 2 + (b.y - m.y) ** 2)
-                if (dist < 25) {
+                // Own bullets cannot destroy own missiles
+                if (dist < 25 && b.owner !== m.owner) {
                     state.bullets.splice(i, 1)
                     state.missiles.splice(j, 1)
                     // Small explosion
@@ -795,7 +796,7 @@ export default function DuelPage() {
         const radarSize = 150
         const padding = 20
         const radarX = padding
-        const radarY = state.canvas.height - radarSize - padding
+        const radarY = padding + 60 // Top area, below header
 
         // Background
         ctx.fillStyle = 'rgba(0,0,0,0.6)'
@@ -925,7 +926,7 @@ export default function DuelPage() {
                                 <div className="text-cyan-500">STATUS: ENGAGED</div>
                             </div>
 
-                            <div className="absolute bottom-[200px] left-6 pointer-events-none text-zinc-500 text-[10px] uppercase font-bold tracking-widest">
+                            <div className="absolute bottom-6 left-6 pointer-events-none text-zinc-500 text-[10px] uppercase font-bold tracking-widest">
                                 Drag to Move • Auto-Fire Engaged • [M] / 2-FINGERS for Missile
                             </div>
 
