@@ -63,6 +63,8 @@ export default function DuelPage() {
     const [peerId, setPeerId] = useState<string>('')
     const [lastMissileFired, setLastMissileFired] = useState(0)
     const [isMobile, setIsMobile] = useState(false)
+    const [debugInfo, setDebugInfo] = useState<string>('')
+    const [connectionStatus, setConnectionStatus] = useState<string>('IDLE')
 
     // Refs
     const peerRef = useRef<Peer | null>(null)
@@ -99,11 +101,30 @@ export default function DuelPage() {
 
     // Init PeerJS
     useEffect(() => {
-        const peer = new Peer()
-        peer.on('open', (id) => setPeerId(id))
+        const peer = new Peer({
+            config: {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:stun2.l.google.com:19302' },
+                    { urls: 'stun:stun.services.mozilla.com' }
+                ],
+                iceCandidatePoolSize: 10,
+            }
+        })
+
+        peer.on('open', (id) => {
+            setPeerId(id)
+            setDebugInfo('Peer system ready.')
+        })
+
+        peer.on('error', (err) => {
+            console.error('PeerJS error:', err)
+            setDebugInfo(`Peer Error: ${err.type}`)
+        })
 
         peer.on('connection', (conn) => {
-            console.log('Incoming Portal Connection')
+            setDebugInfo('Incoming connection...')
             handleConnection(conn)
         })
 
@@ -121,9 +142,22 @@ export default function DuelPage() {
 
     const handleConnection = (conn: DataConnection) => {
         connRef.current = conn
+        setConnectionStatus('CONNECTING')
+
         conn.on('open', () => {
-            console.log('Portal Opened!')
+            setDebugInfo('Connection established!')
+            setConnectionStatus('CONNECTED')
             startGame()
+        })
+
+        conn.on('error', (err) => {
+            setDebugInfo(`Connection Error: ${err}`)
+            setConnectionStatus('ERROR')
+        })
+
+        conn.on('close', () => {
+            setDebugInfo('Connection closed.')
+            setGameState('LOBBY')
         })
         conn.on('data', (data: any) => {
             if (data.type === 'PLAYER_UPDATE' && data.id !== localPlayerId) {
@@ -918,12 +952,24 @@ export default function DuelPage() {
                     )}
 
                     {gameState === 'MATCHING' && (
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 flex items-center justify-center z-10 text-center space-y-8">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 flex flex-col items-center justify-center z-10 text-center space-y-8">
                             <div className="relative">
                                 <div className="w-24 h-24 border-4 border-cyan-500/30 rounded-full animate-ping absolute inset-0" />
                                 <div className="w-24 h-24 border-4 border-t-cyan-500 rounded-full animate-spin" />
                             </div>
-                            <h2 className="text-xl font-bold tracking-widest animate-pulse mt-4">SEARCHING FOR OPPONENT...</h2>
+                            <div className="space-y-4">
+                                <h2 className="text-xl font-bold tracking-widest animate-pulse">SEARCHING FOR OPPONENT...</h2>
+                                {debugInfo && (
+                                    <p className="text-cyan-500 text-xs font-mono bg-cyan-500/10 px-4 py-2 rounded-lg">
+                                        {debugInfo}
+                                    </p>
+                                )}
+                                {connectionStatus === 'CONNECTING' && (
+                                    <p className="text-yellow-500 text-xs font-bold animate-pulse">
+                                        MATCH FOUND! ESTABLISHING P2P LINK...
+                                    </p>
+                                )}
+                            </div>
                         </motion.div>
                     )}
 

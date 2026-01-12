@@ -45,6 +45,8 @@ export default function PuzzlePage() {
     const [userGender, setUserGender] = useState('Male')
     const [matchPreference, setMatchPreference] = useState('Any')
     const [partnerName, setPartnerName] = useState('Partner')
+    const [debugInfo, setDebugInfo] = useState<string>('')
+    const [connectionStatus, setConnectionStatus] = useState<string>('IDLE')
 
     // Refs for State accessed in Event Listeners
     const userNameRef = useRef(userName)
@@ -57,16 +59,33 @@ export default function PuzzlePage() {
 
     // 1. Initialize PeerJS on Mount
     useEffect(() => {
-        const peer = new Peer()
+        const peer = new Peer({
+            config: {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:stun2.l.google.com:19302' },
+                    { urls: 'stun:stun.services.mozilla.com' }
+                ],
+                iceCandidatePoolSize: 10,
+            }
+        })
 
         peer.on('open', (id) => {
             console.log('--- PeerJS: Connected with ID:', id)
             setPeerId(id)
+            setDebugInfo('Peer system ready.')
+        })
+
+        peer.on('error', (err) => {
+            console.error('--- PeerJS Error:', err)
+            setDebugInfo(`Peer Error: ${err.type}`)
         })
 
         // Data Connection (Chat/Game)
         peer.on('connection', (conn) => {
             console.log('--- PeerJS: Incoming connection from', conn.peer)
+            setDebugInfo('Incoming connection...')
             handleConnection(conn)
         })
 
@@ -119,9 +138,12 @@ export default function PuzzlePage() {
     // 2. Handle Incoming/Outgoing Connection
     const handleConnection = (conn: DataConnection) => {
         connRef.current = conn
+        setConnectionStatus('CONNECTING')
 
         conn.on('open', () => {
             console.log('--- PeerJS: Connection Open! ---')
+            setDebugInfo('Connection established!')
+            setConnectionStatus('CONNECTED')
         })
 
         conn.on('data', (data: any) => {
@@ -131,6 +153,7 @@ export default function PuzzlePage() {
 
         conn.on('close', () => {
             console.log('--- PeerJS: Connection Closed ---')
+            setDebugInfo('Connection closed.')
             alert('Partner disconnected!')
             setGameState('LOBBY')
             setPieces([])
@@ -139,6 +162,8 @@ export default function PuzzlePage() {
 
         conn.on('error', (err) => {
             console.error('--- PeerJS Connection Error:', err)
+            setDebugInfo(`Connection Error: ${err}`)
+            setConnectionStatus('ERROR')
         })
     }
 
@@ -523,7 +548,20 @@ export default function PuzzlePage() {
                         {gameState === 'MATCHING' && (
                             <motion.div key="matching" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="rounded-[2.5rem] bg-card/50 border border-border p-12 flex flex-col items-center justify-center min-h-[500px] space-y-8">
                                 <div className="relative"><Loader2 size={80} className="text-primary animate-spin" /><div className="absolute inset-0 flex items-center justify-center"><Users size={32} className="text-primary" /></div></div>
-                                <div className="text-center space-y-2"><h2 className="text-3xl font-black tracking-tight animate-pulse">FINDING TEAMMATE</h2><p className="text-muted-foreground">Connecting to the global puzzle network...</p></div>
+                                <div className="text-center space-y-4">
+                                    <h2 className="text-3xl font-black tracking-tight animate-pulse">FINDING TEAMMATE</h2>
+                                    <p className="text-muted-foreground">Connecting to the global puzzle network...</p>
+                                    {debugInfo && (
+                                        <p className="text-primary text-xs font-mono bg-primary/10 px-4 py-2 rounded-lg inline-block">
+                                            {debugInfo}
+                                        </p>
+                                    )}
+                                    {connectionStatus === 'CONNECTING' && (
+                                        <p className="text-yellow-500 text-xs font-bold animate-pulse">
+                                            MATCH FOUND! ESTABLISHING P2P LINK...
+                                        </p>
+                                    )}
+                                </div>
                             </motion.div>
                         )}
                         {(gameState === 'PLAYING' || gameState === 'COMPLETED') && (
