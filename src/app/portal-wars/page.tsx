@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Crosshair, Shield, Zap, Users, ArrowRight, Loader2, Target } from 'lucide-react'
 import Link from 'next/link'
 import Peer, { DataConnection } from 'peerjs'
+import { ICE_CONFIG } from "@/lib/ice-config"
 
 interface Player {
     id: string
@@ -101,7 +102,9 @@ export default function DuelPage() {
 
     // Init PeerJS
     useEffect(() => {
-        const peer = new Peer()
+        const peer = new Peer({
+            config: ICE_CONFIG
+        })
 
         peer.on('open', (id) => {
             setPeerId(id)

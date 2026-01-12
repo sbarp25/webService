@@ -8,6 +8,7 @@ import InstantChat from '@/components/puzzle/InstantChat'
 import Link from 'next/link'
 import confetti from 'canvas-confetti'
 import Peer, { DataConnection } from 'peerjs'
+import { ICE_CONFIG } from "@/lib/ice-config"
 
 type GameState = 'LOBBY' | 'MATCHING' | 'PLAYING' | 'COMPLETED'
 
@@ -59,7 +60,9 @@ export default function PuzzlePage() {
 
     // 1. Initialize PeerJS on Mount
     useEffect(() => {
-        const peer = new Peer()
+        const peer = new Peer({
+            config: ICE_CONFIG
+        })
 
         peer.on('open', (id) => {
             console.log('--- PeerJS: Connected with ID:', id)
