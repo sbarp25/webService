@@ -196,12 +196,18 @@ export default function PuzzlePage() {
         for (let row = 0; row < GRID_SIZE.rows; row++) {
             for (let col = 0; col < GRID_SIZE.cols; col++) {
                 const id = row * GRID_SIZE.cols + col
+                // Use Percentages (0-100) for position
+                // Width unit = 100 / 4 = 25%
+                // Height unit = 100 / 3 = 33.33%
+                const targetX = (col / GRID_SIZE.cols) * 100
+                const targetY = (row / GRID_SIZE.rows) * 100
+
                 initialPieces.push({
                     id,
-                    targetPos: { x: col * PIECE_WIDTH, y: row * PIECE_HEIGHT },
+                    targetPos: { x: targetX, y: targetY },
                     currentPos: {
-                        x: Math.random() * 200 + 450,
-                        y: Math.random() * 200 + 50
+                        x: Math.random() * 60 + 20, // Random positions approx 20-80%
+                        y: Math.random() * 60 + 20
                     },
                     isLocked: false
                 })
