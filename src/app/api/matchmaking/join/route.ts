@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server'
 export async function POST(req: Request) {
     try {
         const body = await req.json()
-        const { userId, name, gender, preference, peerId } = body
+        const { userId, name, gender, preference, peerId, gameType = 'PUZZLE' } = body
 
         if (!userId || !peerId || !name) {
             return new Response('Missing required fields', { status: 400 })
@@ -25,6 +25,7 @@ export async function POST(req: Request) {
             gender,
             preference,
             peerId,
+            gameType,
             status: 'WAITING',
             joinedAt: new Date()
         })

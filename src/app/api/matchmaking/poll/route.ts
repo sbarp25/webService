@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server'
 export async function POST(req: Request) {
     try {
         const body = await req.json()
-        const { userId, gender, preference } = body
+        const { userId, gender, preference, gameType = 'PUZZLE' } = body
 
         if (!userId) {
             return new Response('Missing userId', { status: 400 })
@@ -23,7 +23,8 @@ export async function POST(req: Request) {
 
         let matchQuery: any = {
             userId: { $ne: userId }, // Not us
-            status: 'WAITING'
+            status: 'WAITING',
+            gameType: gameType // Must find player in same game mode
         }
 
         // Apply Preference Filter
