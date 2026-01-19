@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Scissors, Sticker, UserSquare, LayoutGrid, Layout, RefreshCw, Users, Video, Crosshair } from "lucide-react"
+import { Scissors, Sticker, UserSquare, LayoutGrid, Layout, RefreshCw, Users, Video, Crosshair, Zap } from "lucide-react"
 
 export default function Home() {
   const structuredData = {
@@ -275,6 +275,31 @@ export default function Home() {
                 </div>
                 <span className="inline-flex items-center justify-center rounded-full bg-purple-500 text-white px-4 py-1.5 text-sm font-black transition-all group-hover:px-6">
                   Create Video
+                </span>
+              </div>
+            </Link>
+
+            <Link
+              href="/laser-converter"
+              className="group relative overflow-hidden rounded-3xl border bg-card p-4 border-red-500/30 hover:border-red-500/50 transition-all duration-300 hover:shadow-2xl hover:shadow-red-500/10"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-red-500/10 to-orange-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="relative z-10 flex flex-col items-center text-center space-y-4">
+                <div className="p-4 rounded-2xl bg-red-500/20 text-red-500 group-hover:scale-110 transition-transform duration-300 relative">
+                  <Zap size={36} />
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 text-[8px] items-center justify-center text-white font-black">HOT</span>
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  <h2 className="text-xl font-bold">Laser Converter</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Prepare images for laser engraving. Dithering, thresholding, and halftone effects.
+                  </p>
+                </div>
+                <span className="inline-flex items-center justify-center rounded-full bg-red-500 text-white px-4 py-1.5 text-sm font-black transition-all group-hover:px-6">
+                  Start Burning
                 </span>
               </div>
             </Link>

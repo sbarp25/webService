@@ -31,6 +31,11 @@ export const ICE_CONFIG = {
             username: "86eb124fe213389dfdc437c1",
             credential: "V4MDsFtwESUIIPHg",
         },
+        {
+            urls: "free.expressturn.com:3478",
+            username: "efPU52K4SLOQ34W2QY",
+            credential: "1TJPNFxHKXrZfelz",
+        },
     ],
     iceCandidatePoolSize: 10,
 };
