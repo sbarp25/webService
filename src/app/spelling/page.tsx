@@ -5,7 +5,7 @@ import { ArrowLeft, Volume2, RotateCcw, CheckCircle2, XCircle, ChevronRight, Set
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import confetti from "canvas-confetti"
-import { DEFAULT_WORD_LISTS, speakWord, parseWordList } from "@/lib/spelling-utils"
+import { DEFAULT_WORD_LISTS, speakWord, parseWordList, shuffleArray } from "@/lib/spelling-utils"
 
 export default function SpellingPage() {
     const [difficulty, setDifficulty] = useState<keyof typeof DEFAULT_WORD_LISTS | "custom">("beginner")
@@ -55,7 +55,7 @@ export default function SpellingPage() {
             return
         }
 
-        setWordList(newList)
+        setWordList(shuffleArray(newList))
         setDifficulty(diff)
         setWordIndex(0)
         setUserInput("")
@@ -214,9 +214,12 @@ export default function SpellingPage() {
                                             placeholder="Type the word you hear..."
                                             disabled={feedback !== null}
                                             spellCheck={false}
-                                            autoComplete="off"
+                                            autoComplete="one-time-code"
                                             autoCorrect="off"
                                             autoCapitalize="off"
+                                            inputMode="text"
+                                            aria-autocomplete="none"
+                                            data-form-type="other"
                                             className={`w-full text-center bg-secondary/50 border-2 rounded-2xl px-6 py-5 text-2xl font-bold focus:outline-none transition-all ${
                                                 feedback === 'correct' ? 'border-green-500 bg-green-50' : 
                                                 feedback === 'incorrect' ? 'border-red-500 bg-red-50' : 
