@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { connectToDatabase } from '@/lib/db.server'
 import { headers } from 'next/headers'
+import { getBaseUrl } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -49,9 +50,8 @@ export async function POST(request: Request) {
     const result = await qrCodes.insertOne(qrCode)
 
     const headersList = await headers()
-    const host = headersList.get('host') || 'localhost:3000'
-    const protocol = host.includes('localhost') ? 'http' : 'https'
-    const baseUrl = process.env.NEXTAUTH_URL || `${protocol}://${host}`
+    const host = headersList.get('host')
+    const baseUrl = getBaseUrl(host)
 
     return NextResponse.json({
       success: true,

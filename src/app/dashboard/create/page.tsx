@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Link as LinkIcon, User, Wifi, FileText, Zap, Loader2 } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
+import { getBaseUrl } from '@/lib/utils'
 
 type QRType = 'url' | 'biopage' | 'vcard' | 'wifi' | 'text'
 
@@ -435,7 +436,7 @@ export default function CreateQRPage() {
                                 <p className="text-sm text-muted-foreground mb-4">QR Code Preview</p>
                                 <div className="bg-white p-4 rounded-xl">
                                     <QRCodeSVG
-                                        value={`${process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'}/qr/preview`}
+                                        value={`${getBaseUrl()}/qr/preview`}
                                         size={200}
                                         level="H"
                                     />
